@@ -1,37 +1,11 @@
 {
   "name": "build-tools",
-  "dependencies": {
-    "bluebird": "registry:npm/bluebird#3.3.4+20160515010139",
-    "chalk": "registry:npm/chalk#1.0.0+20160211003958",
-    "debug": "registry:npm/debug#2.0.0+20160511151334",
-    "del": "registry:npm/del#2.2.0+20160416211512",
-    "es6-promise": "registry:npm/es6-promise#3.0.0+20160211003958",
+  "dependencies": {    
     "gulp": "registry:npm/gulp#3.8.0+20160211003958",
     "lodash": "registry:npm/lodash#4.0.0+20160416211519",
-    "minimist": "registry:npm/minimist#1.0.0+20160229232932",
-    "requirejs": "registry:npm/requirejs#2.2.0+20160319062357",
     "through2": "registry:npm/through2#2.0.0+20160308004148"
   },
   "globalDependencies": {
-    "browser-sync": "registry:dt/browser-sync#0.0.0+20160316155526",
-    "chokidar": "registry:dt/chokidar#1.4.3+20160316155526",
-    "express": "registry:dt/express#4.0.0+20160317120654",
-    "express-serve-static-core": "registry:dt/express-serve-static-core#0.0.0+20160322035842",
-    "gulp-cached": "registry:dt/gulp-cached#0.0.0+20160316155526",
-    "gulp-html-replace": "registry:dt/gulp-html-replace#1.5.5+20160125183154",
-    "gulp-protractor": "registry:dt/gulp-protractor#1.0.0+20160316155526",
-    "gulp-replace": "registry:dt/gulp-replace#0.0.0+20160316155526",
-    "gulp-sourcemaps": "registry:dt/gulp-sourcemaps#0.0.0+20160316155526",
-    "gulp-util": "registry:dt/gulp-util#0.0.0+20160316155526",
-    "karma": "registry:dt/karma#0.13.9+20160501125529",
-    "log4js": "registry:dt/log4js#0.0.0+20160316155526",
-    "micromatch": "registry:dt/micromatch#2.3.7+20160123140905",
-    "mime": "registry:dt/mime#0.0.0+20160316155526",
-    "node": "registry:dt/node#6.0.0+20160619064643",
-    "parse-glob": "registry:dt/parse-glob#3.0.4+20160110125512",
-    "run-sequence": "registry:dt/run-sequence#0.0.0+20160316155526",
-    "serve-static": "registry:dt/serve-static#0.0.0+20160501131543",
-    "vinyl": "registry:dt/vinyl#1.1.0+20160316155526",
-    "vinyl-paths": "registry:dt/vinyl-paths#0.0.0+20160316155526"
+    "node": "registry:dt/node#6.0.0+20160619064643"
   }
 }

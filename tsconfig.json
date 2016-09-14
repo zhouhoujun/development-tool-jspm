@@ -1,6 +1,5 @@
 {
-  "name": "build-tools",
-  "version": false,
+  "name": "jspm-incremental-bundler",
   "compilerOptions": {
     "module": "commonjs",
     "target": "es2015",
@@ -25,11 +24,7 @@
   "exclude": [
     "test",
     "lib",
-    "node_modules"
-    
-  ],
-  "include":[
-    "typings"
+    "node_modules"    
   ],
   "compileOnSave": false
 }

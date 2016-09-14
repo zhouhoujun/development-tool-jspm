@@ -1,8 +1,9 @@
-# packaged jspm-incremental-bundler
+# packaged jspm-bundle-builder
 
-This repo is for distribution on `npm` and `jspm`. The source for this module is in the
-[main repo](https://github.com/zhouhoujun//jspm-incremental-bundler/src/mastert).
+This repo is for distribution on `npm`. The source for this module is in the
+[main repo](https://github.com/zhouhoujun/jspm-bundle-builder/src/mastert).
 Please file issues and pull requests against that repo.
+This package use to bundle jspm project by custom group. 
 
 ## Install
 
@@ -12,38 +13,45 @@ You can install this package either with `npm` or with `jspm`.
 
 ```shell
 dependencies: {
-  "jspm-incremental-bundler": "https://github.com/zhouhoujun/jspm-incremental-bundler.git#commit-ish"
+  "jspm-bundle-builder": "https://github.com/zhouhoujun/jspm-bundle-builder.git#commit-ish"
 }
 npm install
 ```
 
-You can `import` ngMock modules:
+You can `import` modules:
 
 ```js
 
-import  { JSPMBuilder } from 'jspm-incremental-bundler';
+import  { JSPMBuilder } from 'jspm-bundle-builder';
 
+builder = new JSPMBuilder(options);
+//bundle all ,setting in options.
+builder.bundle();
+//only bundle group1, setting in options .
+builder.bundle('group1');
+//bundle 'group1','group2','group2', setting in options .
+builder.bundle(['group1','group2','group2'])
 
 ```
 
 ### jspm
 
 ```shell
-jspm install github:zhouhoujun/jspm-incremental-bundler
+jspm install github:zhouhoujun/jspm-bundle-builder
 ```
-https://github.com/zhouhoujun//jspm-incremental-bundler.git
-The mocks are then available at `jspm_components/jspm-incremental-bundler/jspm-incremental-bundler.js`.
+https://github.com/zhouhoujun/jspm-bundle-builder.git
+The mocks are then available at `jspm_components/jspm-bundle-builder/jspm-bundle-builder.js`.
 
 ## Documentation
 
 Documentation is available on the
-[jspm-incremental-bundler docs site](https://github.com/zhouhoujun//jspm-incremental-bundler).
+[jspm-bundle-builder docs site](https://github.com/zhouhoujun/jspm-bundle-builder).
 
 ## License
 
 The MIT License
 
-Copyright (c) 2010-2015 Google, Inc. http://www.skspruce.com
+Copyright (c) 2010-2016, Inc. https://github.com/zhouhoujun/
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
