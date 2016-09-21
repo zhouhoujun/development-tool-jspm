@@ -117,10 +117,10 @@ export interface BundlesConfig {
     /**
      * bundle group config
      * 
-     * @type {Map<string, BundleGroup>}
+     * @type {IMap<string, BundleGroup>}
      * @memberOf BundlesConfig
      */
-    bundles?: Map<string, BundleGroup>;
+    bundles?: IMap<BundleGroup>;
 }
 
 export interface BuidlerConfig {
@@ -163,7 +163,7 @@ export interface BundleGroup {
      * @type {(string[] | Map<string, string>)}
      * @memberOf BundleGroup
      */
-    items: string[] | Map<string, string>;
+    items: string[] | IMap<string>;
     /**
      * bundle config.
      * 
@@ -188,7 +188,7 @@ export class JSPMBuilder {
             systemConfigTempl: '',
             relationToRoot: '',
             bust: false,
-            bundles: new Map<string, BundleGroup>(),
+            bundles: {},
             jspmMates: {
                 '*.css': {
                     loader: 'css'
@@ -394,7 +394,7 @@ export class JSPMBuilder {
         let minusStr = this.exclusionString(bundleOpts.exclude, this.options.bundles);
 
         if (bundleOpts.items) {
-            bundleItems = _.isArray(bundleItems) ? <string[]>bundleOpts.items : <string[]>_.toArray((<Map<string, string>>bundleOpts.items).keys);
+            bundleItems = _.isArray(bundleItems) ? <string[]>bundleOpts.items : _.keys(bundleOpts.items);
         }
 
         console.log(`-------------------------------\nBundling group: ${name} ... \ngroup items:\n  ${bundleItems}\n-------------------------------`);

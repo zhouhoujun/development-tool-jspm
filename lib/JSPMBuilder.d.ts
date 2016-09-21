@@ -16,7 +16,7 @@ export interface BundlesConfig {
     jspmMetas?: IMap<JspmMate>;
     builder?: BuidlerConfig;
     systemConfigTempl?: string;
-    bundles?: Map<string, BundleGroup>;
+    bundles?: IMap<BundleGroup>;
 }
 export interface BuidlerConfig {
     sfx?: boolean;
@@ -35,7 +35,7 @@ export interface BundleGroup {
     toES5?: boolean;
     combine: boolean;
     exclude: string[];
-    items: string[] | Map<string, string>;
+    items: string[] | IMap<string>;
     builder: BuidlerConfig;
 }
 export declare class JSPMBuilder {
