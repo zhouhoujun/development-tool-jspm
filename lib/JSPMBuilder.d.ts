@@ -42,8 +42,8 @@ export declare class JSPMBuilder {
     private options;
     constructor(options: BundlesConfig);
     bundleAll(name: string, src: string | string[], dest: string, bundlesConfig?: BundlesConfig): Promise<any>;
-    bundle(groups: string | string[]): Promise<any>;
-    unbundle(groups: string | string[]): Promise<any>;
+    bundle(groups?: string | string[]): Promise<any>;
+    unbundle(groups?: string | string[]): Promise<any>;
     groupBundle(name: string): Promise<any>;
     private exclusionString(exclude, groups);
     private exclusionArray(exclude, groups);

@@ -271,7 +271,7 @@ export class JSPMBuilder {
      * @param {Array} groups
      * @returns {Promise}
      */
-    bundle(groups: string | string[]): Promise<any> {
+    bundle(groups?: string | string[]): Promise<any> {
 
 
         if (_.isEmpty(this.options.bundles)) {
@@ -330,7 +330,7 @@ export class JSPMBuilder {
     }
 
 
-    unbundle(groups: string | string[]): Promise<any> {
+    unbundle(groups?: string | string[]): Promise<any> {
 
         console.log('------ Unbundling -----------');
 
