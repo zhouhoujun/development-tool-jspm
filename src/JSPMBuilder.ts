@@ -758,10 +758,8 @@ export class JSPMBuilder {
 
     private getBundleShortPath(bundleName: string, bundleOpts: BundleGroup) {
         var fullPath = this.getBundleDest(bundleName, bundleOpts);
-        let spath: string = fullPath.replace(this.options.baseURL, '');
-        if (/^(\\)/.test(spath)) {
-            spath = spath.substring(2);
-        }
+        let spath: string = path.relative(this.options.baseURL, fullPath);
+        spath = spath.replace(/\\/g, '/').replace(/^\//g, '');
         return spath;
     }
 
