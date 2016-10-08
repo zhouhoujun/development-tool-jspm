@@ -22,7 +22,7 @@
   "author": "houjun",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/zhouhoujun/jspm-bundle-builder/wiki"
+    "url": "https://github.com/zhouhoujun/jspm-bundle-builder/issues"
   },
   "registry": "jspm",
   "repository": {
