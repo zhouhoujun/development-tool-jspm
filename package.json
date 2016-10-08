@@ -22,11 +22,11 @@
   "author": "houjun",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/zhouhoujun/jspm-bundle-builder/issues"
+    "url": "https://github.com/zhouhoujun/jspm-bundle-tool/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhouhoujun/jspm-bundle-builder.git"
+    "url": "git+https://github.com/zhouhoujun/jspm-bundle-tool.git"
   },
   "dependencies": {
     "color-console": "^0.0.1",
@@ -48,5 +48,5 @@
     "typings": "^1.3.1",
     "zone.js": "^0.6.10"
   },
-  "homepage": "https://github.com/zhouhoujun/jspm-bundle-builder#readme"
+  "homepage": "https://github.com/zhouhoujun/jspm-bundle-tool#readme"
 }

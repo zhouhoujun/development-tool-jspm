@@ -1,7 +1,7 @@
-# packaged jspm-bundle-builder
+# packaged jspm-bundle-tool
 
 This repo is for distribution on `npm`. The source for this module is in the
-[main repo](https://github.com/zhouhoujun/jspm-bundle-builder/src/mastert).
+[main repo](https://github.com/zhouhoujun/jspm-bundle-tool/src/mastert).
 Please file issues and pull requests against that repo.
 This package use to bundle jspm project by custom group. 
 
@@ -12,17 +12,16 @@ You can install this package either with `npm` or with `jspm`.
 ### npm
 
 ```shell
-dependencies: {
-  "jspm-bundle-builder": "https://github.com/zhouhoujun/jspm-bundle-builder.git#commit-ish"
-}
-npm install
+
+npm install jspm-bundle-tool
+
 ```
 
 You can `import` modules:
 
 ```js
 
-import  { JSPMBuilder } from 'jspm-bundle-builder';
+import  { JSPMBuilder } from 'jspm-bundle-tool';
 
 builder = new JSPMBuilder(bundlesConfig);
 //bundle all ,setting in bundlesConfig.bundles.
@@ -189,7 +188,7 @@ export interface JspmMate {
 ## Documentation
 
 Documentation is available on the
-[jspm-bundle-builder docs site](https://github.com/zhouhoujun/jspm-bundle-builder).
+[jspm-bundle-tool docs site](https://github.com/zhouhoujun/jspm-bundle-tool).
 
 ## License
 
