@@ -9,7 +9,7 @@
     "postinstall": "npm prune && typings install",
     "reinstall": "npm cache clean && npm install",
     "test": "gulp test --color",
-    "publish": "gulp build",
+    "prepublish": "gulp build",
     "e2e": "protractor",
     "e2e.live": "protractor --elementExplorer"
   },
