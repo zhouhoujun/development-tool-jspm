@@ -527,7 +527,7 @@ export class JSPMBuilder {
 
         return Promise.all(_.map(bundles, (bundle: any) => {
             if (!_.isObject(bundle)) {
-                return;
+                return null;
             }
 
             return new Promise((resolve, reject) => {
