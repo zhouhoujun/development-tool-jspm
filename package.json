@@ -31,7 +31,6 @@
   "dependencies": {
     "@types/gulp": "^3.8.32",
     "@types/lodash": "^4.14.37",
-    "@types/node": "^6.0.45",
     "checksum": "^0.1.1",
     "color-console": "^0.0.1",
     "gulp": "^3.9.1",
