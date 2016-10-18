@@ -31,16 +31,22 @@
   "dependencies": {
     "@types/gulp": "^3.8.32",
     "@types/lodash": "^4.14.37",
+    "@types/node": "^6.0.45",
     "checksum": "^0.1.1",
     "color-console": "^0.0.1",
     "gulp": "^3.9.1",
-    "gulp-ng-annotate": "^2.0.0",
     "gulp-uglify": "^1.5.4",
     "jspm": "^0.16.39",
-    "lodash": "^4.13.1"
+    "lodash": "^4.13.1",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-paths": "^2.1.0",
+    "vinyl-source-stream": "^1.1.0"
   },
   "devDependencies": {
     "bluebird": "^3.4.1",
+    "del": "^2.2.1",
+    "gulp-typescript": "^3.0.2",
+    "merge2": "^1.0.2",
     "through2": "^2.0.1",
     "ts-node": "^1.6.0",
     "tslint": "^3.15.1",

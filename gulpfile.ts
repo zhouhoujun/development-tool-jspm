@@ -6,9 +6,9 @@ const del = require('del');
 
 
 gulp.task('build', ['clean-lib'], () => {
-    let tsProject = ts.createProject('tsconfig.json', { sortOutput: true });
+    let tsProject = ts.createProject('tsconfig.json');
     let tsResult = gulp.src('src/**/*.ts')
-        .pipe(ts(tsProject));
+        .pipe(tsProject());
 
     return merge([
         // Merge the two output streams, so this task is finished when the IO of both operations are done. 
