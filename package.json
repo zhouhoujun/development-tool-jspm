@@ -1,6 +1,6 @@
 {
   "name": "jspm-bundle-tool",
-  "version": "0.1.2",
+  "version": "0.1.3-beta",
   "description": "jspm bundle builder tools, group bundle.",
   "main": "./lib/JSPMBuilder.js",
   "typings": "./lib/JSPMBuilder",
