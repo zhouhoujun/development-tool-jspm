@@ -1,13 +1,4 @@
-/**
- * object map. 
- * 
- * @export
- * @interface IMap
- * @template T
- */
-export interface IMap<T> {
-    [K: string]: T;
-}
+import { IMap } from 'development-core'
 
 /**
  * jspm mate loader config
