@@ -1,193 +1,35 @@
 import * as _ from 'lodash';
 import * as path from 'path';
 import * as gulp from 'gulp';
-import {readFileSync, existsSync, writeFileSync} from 'fs';
-
-const console = require('color-console');
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import * as chalk from 'chalk';
 // const babel = require('gulp-babel');
 const jspm = require('jspm');
 const source = require('vinyl-source-stream');
 const vinylBuffer = require('vinyl-buffer');
-const ngAnnotate = require('gulp-ng-annotate');
+// const ngAnnotate = require('gulp-ng-annotate');
 // const sourcemaps = require('gulp-sourcemaps');
 const uglify = require('gulp-uglify');
 const chksum = require('checksum');
 const mkdirp = require('mkdirp');
 
-/**
- * object map. 
- * 
- * @export
- * @interface IMap
- * @template T
- */
-export interface IMap<T> {
-    [K: string]: T;
-}
-
-/**
- * jspm mate loader config
- * 
- * @export
- * @interface JspmMate
- */
-export interface JspmMate {
-    loader: string;
-}
-
-/**
- * bundle config
- * 
- * @export
- * @interface BundlesConfig
- */
-export interface BundlesConfig {
-    /**
-     * project root path to build.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    root?: string;
-    /**
-     * systemjs baseURL
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    baseURL?: string;
-    /**
-     * the bundle app path relation to root site.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    baseUri?: string;
-    /**
-     * jspm config file full path.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    jspmConfig?: string;
-    /**
-     * bundle to dest path.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    dest?: string;
-    /**
-     * bundle main file.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    file?: string;
-    bust?: boolean | string;
-    version?: string;
-    /**
-     * the config to bundle jspm loader.
-     * 
-     * @type {IMap<JspmMate>}
-     * @memberOf BundlesConfig
-     */
-    jspmMetas?: IMap<JspmMate>;
-    /**
-     * build Config.
-     * 
-     * @type {BuidlerConfig}
-     * @memberOf BundlesConfig
-     */
-    builder?: BuidlerConfig;
-    // /**
-    //  * babel 6 option
-    //  * 
-    //  * @type {*}
-    //  * @memberOf BundlesConfig
-    //  */
-    // babelOption?: any;
-    /**
-     * custom template for bundle main file.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    systemConfigTempl?: string;
-    /**
-     * bundle group config
-     * 
-     * @type {IMap<string, BundleGroup>}
-     * @memberOf BundlesConfig
-     */
-    bundles?: IMap<BundleGroup>;
-}
-
-export interface BuidlerConfig {
-    sfx?: boolean;
-    minify: boolean;
-    mangle: boolean;
-    sourceMaps: boolean;
-    separateCSS: boolean;
-    lowResSourceMaps: boolean;
-    config?: {
-        paths?: any;
-        rootURL?: string;
-    };
-}
-
-export interface BundleGroup {
-    /**
-     * Whether to bundle this group.
-     */
-    bundle: boolean;
-
-    /**
-     * compile to es5.
-     * 
-     * @type {boolean}
-     * @memberOf BundleGroup
-     */
-    toES5?: boolean;
-    /**
-     *  Combine items together via addition.
-     */
-    combine: boolean;
-    /**
-     * Exclude groups or packages via subtraction.
-     */
-    exclude: string[];
-    /**
-     * the items to bundle to this group.
-     * 
-     * @type {(string[] | Map<string, string>)}
-     * @memberOf BundleGroup
-     */
-    items: string[] | IMap<string>;
-    /**
-     * bundle config.
-     * 
-     * @type {BuidlerConfig}
-     * @memberOf BundleGroup
-     */
-    builder: BuidlerConfig;
-}
+import { IBundlesConfig, IBuidlerConfig, IBundleGroup, IBuilder } from './config';
 
 /**
  * jspm builder.
  * 
  * @export
- * @class JSPMBuilder
+ * @class JspmBuilder
  */
-export class JSPMBuilder {
-    constructor(private options: BundlesConfig) {
+export class JspmBuilder implements IBuilder {
+    constructor(private options: IBundlesConfig) {
 
-        this.options = _.defaults(this.options, <BundlesConfig>{
+        this.options = _.extend(<IBundlesConfig>{
             dest: '',
             file: '',
             systemConfigTempl: '',
             relationToRoot: '',
-            bust: false,
+            bust: '',
             bundles: {},
             jspmMates: {
                 '*.css': {
@@ -211,7 +53,7 @@ export class JSPMBuilder {
                 separateCSS: false,
                 lowResSourceMaps: true
             }
-        });
+        }, this.options);
 
         // console.log(this.options.bundles);
         let root = (path.dirname(module.parent.filename) + '/');
@@ -221,10 +63,10 @@ export class JSPMBuilder {
             this.options.baseURL = path.join(this.options.root, this.options.baseURL, '/') || root;
         }
 
-        console.log('bundles config:', this.options);
+        console.log('bundles config:', chalk.cyan(<any>this.options));
     }
 
-    bundleAll(name: string, src: string | string[], dest: string, bundlesConfig?: BundlesConfig): Promise<any> {
+    bundleAll(name: string, src: string | string[], dest: string, bundlesConfig?: IBundlesConfig): Promise<any> {
         bundlesConfig = bundlesConfig || this.options;
 
         let builder = new jspm.Builder({ separateCSS: bundlesConfig.builder.separateCSS });
@@ -247,10 +89,10 @@ export class JSPMBuilder {
                     return stream.pipe(vinylBuffer())
                         // .pipe(sourcemaps.init())
                         // .pipe(babel(bundlesConfig.bundleOption))
-                        .pipe(ngAnnotate({
-                            sourceMap: true,
-                            gulpWarnings: false
-                        }))
+                        // .pipe(ngAnnotate({
+                        //     sourceMap: true,
+                        //     gulpWarnings: false
+                        // }))
                         .pipe(uglify())
                         // .pipe(rename({ suffix: '.min' }))
                         // .pipe(sourcemaps.write())
@@ -315,18 +157,18 @@ export class JSPMBuilder {
             if (this.options.bust) {
                 return this.calcChecksums(bundles).then((checksums) => {
                     return this.updateBundleManifest(bundles, checksums).then(function () {
-                        console.success('------ Complete -------------');
+                        console.log(chalk.green('------ Complete -------------'));
                     });
                 });
             } else {
                 return this.updateBundleManifest(bundles).then(function () {
-                    console.success('------ Complete -------------');
+                    console.log(chalk.green('------ Complete -------------'));
                 });
             }
         })
-        .catch(err => {
-            console.error(err);
-        });
+            .catch(err => {
+                console.error(chalk.red(err));
+            });
     }
 
 
@@ -335,7 +177,7 @@ export class JSPMBuilder {
         console.log('------ Unbundling -----------');
 
         if (!groups) {
-            console.warn('Removing all bundles...');
+            console.warn(chalk.yellow('Removing all bundles...'));
             return this.writeBundleManifest(null);
         }
 
@@ -359,14 +201,14 @@ export class JSPMBuilder {
 
                 shortPath = this.getBundleShortPath(groupName, bundleOpts);
                 unbundles.push({ path: shortPath });
-                console.success('Success removed:', shortPath);
+                console.log('Success removed:', chalk.cyan(shortPath));
 
             } else {
 
                 _.forEach(bundleOpts.items, function (item) {
                     shortPath = this.getBundleShortPath(item, bundleOpts);
                     unbundles.push({ path: shortPath });
-                    console.success('Success removed:', shortPath);
+                    console.log('Success removed:', chalk.cyan(shortPath));
                 });
 
             }
@@ -397,7 +239,7 @@ export class JSPMBuilder {
             bundleItems = _.isArray(bundleItems) ? <string[]>bundleOpts.items : _.keys(bundleOpts.items);
         }
 
-        console.log(`-------------------------------\nBundling group: ${name} ... \ngroup items:\n  ${bundleItems}\n-------------------------------`);
+        console.log(`-------------------------------\nBundling group: ${chalk.cyan(name)} ... \ngroup items:\n  ${chalk.cyan(<any>bundleItems)}\n-------------------------------`);
 
 
         let jsbuilder = new jspm.Builder({ separateCSS: bundleOpts.builder.separateCSS });
@@ -453,7 +295,7 @@ export class JSPMBuilder {
         return minus;
     }
 
-    private createBundler(builder: any, bundleName: string, bundleStr: string, bundleDest: string, bundleOpts: BundleGroup): Promise<any> {
+    private createBundler(builder: any, bundleName: string, bundleStr: string, bundleDest: string, bundleOpts: IBundleGroup): Promise<any> {
 
         let sfx = bundleOpts.builder.sfx;
         let bundler = (sfx) ? builder.buildStatic : builder.bundle;
@@ -485,7 +327,7 @@ export class JSPMBuilder {
 
                         return stream.pipe(vinylBuffer())
                             // .pipe(sourcemaps.init())
-                            .pipe(ngAnnotate())
+                            // .pipe(ngAnnotate())
                             .pipe(uglify())
                             // .pipe(rename({ suffix: '.min' }))
                             // .pipe(sourcemaps.write('.'))
@@ -504,9 +346,9 @@ export class JSPMBuilder {
             })
             .then(output => {
                 if (sfx) {
-                    console.success(`Built sfx package: ${bundleName} -> ${filename}\n   dest: ${bundleDest}`);
+                    console.log(`Built sfx package: ${chalk.cyan(bundleName)} -> ${chalk.cyan(filename)}\n   dest: ${chalk.cyan(bundleDest)}`);
                 } else {
-                    console.success(`Bundled package: ${bundleName} -> ${filename}\n   dest: ${bundleDest}`);
+                    console.log(`Bundled package: ${chalk.cyan(bundleName)} -> ${chalk.cyan(filename)}\n   dest: ${chalk.cyan(bundleDest)}`);
                 }
                 return {
                     path: shortPath,
@@ -535,9 +377,9 @@ export class JSPMBuilder {
                 let filename = path.parse(bundle.path).base;
                 chksum.file(filepath, (err, sum) => {
                     if (err) {
-                        console.error(' Checksum Error:', err);
+                        console.error(chalk.red(' Checksum Error:'), chalk.red(err));
                     }
-                    console.success(filename, sum);
+                    console.log(filename, chalk.cyan(sum));
                     chksums[bundle.path] = sum;
                     resolve(chksums);
                 });
@@ -602,7 +444,7 @@ export class JSPMBuilder {
             defaultJSExtensions: true
         });
         System.bundled = true;
-        System.bundle_version = '${options.version}';
+        System.bust = '${options.bust}';
         if(window != undefined) window.prod = true;
         ${this.manifestSplit}
         `;
@@ -715,7 +557,7 @@ export class JSPMBuilder {
             writeFileSync(mainfile, output);
         }
 
-        console.success('Manifest written');
+        console.log(chalk.green('Manifest written'));
 
         return Promise.resolve(true);
 
@@ -737,33 +579,33 @@ export class JSPMBuilder {
                 // console.log(content);
                 writeFileSync(path, content);
                 data = require(path);
-                console.log('has old bundle：\n', path); // , 'data:\n', data);
+                console.log('has old bundle：\n', chalk.cyan(path)); // , 'data:\n', data);
             } catch (e) {
-                console.log(e);
+                console.log(chalk.red(e));
             }
         }
 
         return data;
     }
 
-    private getBundleOpts(name: string): BundleGroup {
+    private getBundleOpts(name: string): IBundleGroup {
         let bundleOpts = this.options.bundles[name];
         if (bundleOpts) {
-            bundleOpts.builder = <BuidlerConfig>_.defaults(bundleOpts.builder, this.options.builder);
+            bundleOpts.builder = <IBuidlerConfig>_.defaults(bundleOpts.builder, this.options.builder);
             return bundleOpts;
         } else {
             return null;
         }
     }
 
-    private getBundleShortPath(bundleName: string, bundleOpts: BundleGroup) {
+    private getBundleShortPath(bundleName: string, bundleOpts: IBundleGroup) {
         var fullPath = this.getBundleDest(bundleName, bundleOpts);
         let spath: string = path.relative(this.options.baseURL, fullPath);
         spath = spath.replace(/\\/g, '/').replace(/^\//g, '');
         return spath;
     }
 
-    private getBundleDest(bundleName: string, bundleOpts: BundleGroup) {
+    private getBundleDest(bundleName: string, bundleOpts: IBundleGroup) {
 
         var url = path.join(this.options.baseURL, this.options.dest);
         var min = bundleOpts.builder.minify;

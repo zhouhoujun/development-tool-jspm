@@ -1,11 +1,11 @@
 {
-  "name": "jspm-incremental-bundler",
+  "name": "development-tool",
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es2015",
+    "target":"es2015",
     "declaration": true,
     "allowSyntheticDefaultImports": true,
-    "removeComments": true,
+    "removeComments": false,
     "noLib": false,
     "jsx":"preserve",
     "emitDecoratorMetadata": true,
@@ -22,7 +22,6 @@
     "suppressImplicitAnyIndexErrors": true
   },
   "exclude": [
-    "test",
     "lib",
     "node_modules"    
   ],

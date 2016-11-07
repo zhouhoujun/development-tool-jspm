@@ -1,47 +1,24 @@
-export interface IMap<T> {
-    [K: string]: T;
-}
-export interface JspmMate {
-    loader: string;
-}
-export interface BundlesConfig {
-    root?: string;
-    baseURL?: string;
-    baseUri?: string;
-    jspmConfig?: string;
-    dest?: string;
-    file?: string;
-    bust?: boolean | string;
-    version?: string;
-    jspmMetas?: IMap<JspmMate>;
-    builder?: BuidlerConfig;
-    systemConfigTempl?: string;
-    bundles?: IMap<BundleGroup>;
-}
-export interface BuidlerConfig {
-    sfx?: boolean;
-    minify: boolean;
-    mangle: boolean;
-    sourceMaps: boolean;
-    separateCSS: boolean;
-    lowResSourceMaps: boolean;
-    config?: {
-        paths?: any;
-        rootURL?: string;
-    };
-}
-export interface BundleGroup {
-    bundle: boolean;
-    toES5?: boolean;
-    combine: boolean;
-    exclude: string[];
-    items: string[] | IMap<string>;
-    builder: BuidlerConfig;
-}
-export declare class JSPMBuilder {
+import { IBundlesConfig, IBuilder } from './config';
+/**
+ * jspm builder.
+ *
+ * @export
+ * @class JspmBuilder
+ */
+export declare class JspmBuilder implements IBuilder {
     private options;
-    constructor(options: BundlesConfig);
-    bundleAll(name: string, src: string | string[], dest: string, bundlesConfig?: BundlesConfig): Promise<any>;
+    constructor(options: IBundlesConfig);
+    bundleAll(name: string, src: string | string[], dest: string, bundlesConfig?: IBundlesConfig): Promise<any>;
+    /**
+     * Create bundles using the bundle configuration. If no bundles are
+     * specified, all groups will be bundles.
+     *
+     * Example:
+     * bundler.bundle(['app', 'routes']);
+     *
+     * @param {Array} groups
+     * @returns {Promise}
+     */
     bundle(groups?: string | string[]): Promise<any>;
     unbundle(groups?: string | string[]): Promise<any>;
     groupBundle(name: string): Promise<any>;

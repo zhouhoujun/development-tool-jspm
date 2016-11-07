@@ -16,7 +16,7 @@
     "no-arg": true,
     "no-internal-module": true,
     "no-trailing-whitespace": true,
-    "no-bitwise": true,
+    "no-bitwise": false,
     "no-shadowed-variable": false,
     "one-line": [
       true,

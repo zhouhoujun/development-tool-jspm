@@ -21,9 +21,9 @@ You can `import` modules:
 
 ```js
 
-import  { JSPMBuilder } from 'jspm-bundle-tool';
+import  { JspmBuilder } from 'jspm-bundle-tool';
 
-builder = new JSPMBuilder(bundlesConfig);
+builder = new JspmBuilder(bundlesConfig);
 //bundle all ,setting in bundlesConfig.bundles.
 builder.bundle();
 //only bundle group1, setting in options .
