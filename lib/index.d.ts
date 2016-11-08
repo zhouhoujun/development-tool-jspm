@@ -1,2 +1,2 @@
 export * from './config';
-export * from './JspmBuilder';
+export * from './task';

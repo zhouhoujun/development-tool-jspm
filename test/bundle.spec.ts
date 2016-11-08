@@ -2,17 +2,17 @@ import * as mocha from 'mocha';
 import { expect, assert } from 'chai';
 import { Operation, IDirLoaderOption, ITask, ITaskConfig, IDynamicLoaderOption } from 'development-core';
 
-import { JspmBuilder, IBuilder, IBundleGroup } from '../src';
+import { IBuilder, IBundleGroup } from '../src';
 let root = __dirname;
 import * as path from 'path';
 
-describe('JspmBuilder', () => {
+describe('Jspm bundle task', () => {
 
-    let factory: (confg: IBundleGroup) => IBuilder;
+    // let factory: (confg: IBundleGroup) => IBuilder;
 
-    beforeEach(() => {
-        factory = (option: IBundleGroup) => new JspmBuilder(option);
-    })
+    // beforeEach(() => {
+    //     factory = (option: IBundleGroup) => //new JspmBuilder(option);
+    // })
 
     it('create dynamic loader', async function () {
 

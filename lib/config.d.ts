@@ -1,13 +1,4 @@
-/**
- * object map.
- *
- * @export
- * @interface IMap
- * @template T
- */
-export interface IMap<T> {
-    [K: string]: T;
-}
+import { IMap, IAsserts, ITaskConfig } from 'development-core';
 /**
  * jspm mate loader config
  *
@@ -23,42 +14,28 @@ export interface IJspmMate {
  * @export
  * @interface BundlesConfig
  */
-export interface IBundlesConfig {
-    /**
-     * project root path to build.
-     *
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    root?: string;
-    /**
-     * systemjs baseURL
-     *
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    baseURL?: string;
+export interface IBundlesConfig extends IAsserts {
     /**
      * the bundle app path relation to root site.
      *
      * @type {string}
      * @memberOf BundlesConfig
      */
-    baseUri?: string;
+    rootUri?: string;
+    /**
+     * systemjs baseURL
+     *
+     * @type {string}
+     * @memberOf BundlesConfig
+     */
+    baseURL: string;
     /**
      * jspm config file full path.
      *
      * @type {string}
      * @memberOf BundlesConfig
      */
-    jspmConfig?: string;
-    /**
-     * bundle to dest path.
-     *
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    dest?: string;
+    jspmConfig: string;
     /**
      * bundle main file.
      *
@@ -95,13 +72,29 @@ export interface IBundlesConfig {
      */
     systemConfigTempl?: string;
     /**
-     * bundle group config
+     * bundle group config, if not set will bundle all.
      *
-     * @type {IMap<string, IBundleGroup>}
+     * @type {(IMap<IBundleGroup> | ((config: IJspmTaskConfig) => IMap<IBundleGroup>)}
      * @memberOf BundlesConfig
      */
-    bundles?: IMap<IBundleGroup>;
+    bundles?: IMap<IBundleGroup> | ((config: IJspmTaskConfig) => IMap<IBundleGroup>);
 }
+/**
+ * jspm task option.
+ *
+ * @export
+ * @interface IJspmTaskOption
+ * @extends {ITaskOption}
+ */
+export interface IJspmTaskConfig extends ITaskConfig {
+    option: IBundlesConfig;
+}
+/**
+ * jspm build config.
+ *
+ * @export
+ * @interface IBuidlerConfig
+ */
 export interface IBuidlerConfig {
     sfx?: boolean;
     minify: boolean;
@@ -114,6 +107,12 @@ export interface IBuidlerConfig {
         rootURL?: string;
     };
 }
+/**
+ * bundle group config.
+ *
+ * @export
+ * @interface IBundleGroup
+ */
 export interface IBundleGroup {
     /**
      * Whether to bundle this group.
@@ -188,5 +187,4 @@ export interface IBuilder {
      * @memberOf IBuilder
      */
     unbundle(groups?: string | string[]): Promise<any>;
-    groupBundle(name: string): Promise<any>;
 }

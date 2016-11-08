@@ -1,9 +1,9 @@
-# packaged jspm-bundle-tool
+# packaged development-tool-jspm
 
 This repo is for distribution on `npm`. The source for this module is in the
-[main repo](https://github.com/zhouhoujun/jspm-bundle-tool/src/mastert).
+[main repo](https://github.com/zhouhoujun/development-tool-jspm/src/mastert).
 Please file issues and pull requests against that repo.
-This package use to bundle jspm project by custom group. 
+This package use to bundle jspm project by custom group.
 
 ## Install
 
@@ -13,182 +13,58 @@ You can install this package either with `npm` or with `jspm`.
 
 ```shell
 
-npm install jspm-bundle-tool
+npm install development-tool-jspm
 
 ```
 
-You can `import` modules:
-
-```js
-
-import  { JspmBuilder } from 'jspm-bundle-tool';
-
-builder = new JspmBuilder(bundlesConfig);
-//bundle all ,setting in bundlesConfig.bundles.
-builder.bundle();
-//only bundle group1, setting in options .
-builder.bundle('group1');
-//bundle 'group1','group2','group2', setting in options .
-builder.bundle(['group1','group2','group2'])
-
-```
-
-### bundle builder options
+### use bundles with development-tool
 
 ```ts
+import  { Development } from 'development-tool';
 
-/**
- * bundle config
- * 
- * @export
- * @interface BundlesConfig
- */
-export interface BundlesConfig {
-    /**
-     * project root path to build.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    root?: string;
-    /**
-     * systemjs baseURL
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    baseURL?: string;
-    /**
-     * the bundle app path relation to root site.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    baseUri?: string;
-    /**
-     * jspm config file full path.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    jspmConfig?: string;
-    /**
-     * bundle to dest path.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    dest?: string;
-    /**
-     * bundle main file.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    file?: string;
-    bust?: boolean | string;
-    version?: string;
-    /**
-     * the config to bundle jspm loader.
-     * 
-     * @type {IMap<JspmMate>}
-     * @memberOf BundlesConfig
-     */
-    jspmMetas?: IMap<JspmMate>;
-    /**
-     * build Config.
-     * 
-     * @type {BuidlerConfig}
-     * @memberOf BundlesConfig
-     */
-    builder?: BuidlerConfig;
-    // /**
-    //  * babel 6 option
-    //  * 
-    //  * @type {*}
-    //  * @memberOf BundlesConfig
-    //  */
-    // babelOption?: any;
-    /**
-     * custom template for bundle main file.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    systemConfigTempl?: string;
-    /**
-     * bundle group config
-     * 
-     * @type {IMap<string, BundleGroup>}
-     * @memberOf BundlesConfig
-     */
-    bundles?: IMap<BundleGroup>;
-}
-
-export interface BundleGroup {
-    /**
-     * Whether to bundle this group.
-     */
-    bundle: boolean;
-
-    /**
-     * compile to es5.
-     * 
-     * @type {boolean}
-     * @memberOf BundleGroup
-     */
-    toES5?: boolean;
-    /**
-     *  Combine items together via addition.
-     */
-    combine: boolean;
-    /**
-     * Exclude groups or packages via subtraction.
-     */
-    exclude: string[];
-    /**
-     * the items to bundle to this group.
-     * 
-     * @type {(string[] | Map<string, string>)}
-     * @memberOf BundleGroup
-     */
-    items: string[] | IMap<string>;
-    /**
-     * bundle config.
-     * 
-     * @type {BuidlerConfig}
-     * @memberOf BundleGroup
-     */
-    builder: BuidlerConfig;
-}
-
-/**
- * object map. 
- * 
- * @export
- * @interface IMap
- * @template T
- */
-export interface IMap<T> {
-    [K: string]: T;
-}
-
-/**
- * jspm mate loader config
- * 
- * @export
- * @interface JspmMate
- */
-export interface JspmMate {
-    loader: string;
-}
+Development.create(gulp, __dirname, [
+    {
+        src:'src',
+        dist:'dist',
+        loader:'development-tool-web',
+        tasks:[
+            {
+                [src:'dist/**/*.js',]
+                dist: 'dist/bundles',
+                loader: 'development-tool-jspm',
+                jspmConfig:'./jspm.conf.js',
+                bundles:{
+                    libs:{
+                        combine:true,
+                        toES5:true,
+                        exclude: [...],
+                        items: string[] | (config)=> string[]
+                    },
+                    module1:{
+                        combine:true,
+                        toES5:true,
+                        exclude: [...],
+                        items: string[] | (config)=> string[]
+                    }
+                    app:{
+                        combine:true,
+                        toES5:true,
+                        exclude: ['libs', 'module1'],
+                        items: ['app/app']
+                    }
+                }
+            }
+        ]
+    }
+])
 
 ```
+
 
 ## Documentation
 
 Documentation is available on the
-[jspm-bundle-tool docs site](https://github.com/zhouhoujun/jspm-bundle-tool).
+[development-tool-jspm docs site](https://github.com/zhouhoujun/development-tool-jspm).
 
 ## License
 
