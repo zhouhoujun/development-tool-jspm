@@ -1,4 +1,4 @@
-import { IMap, IAsserts, ITaskConfig } from 'development-core';
+import { Pipe, IMap, IAsserts, ITaskConfig } from 'development-core';
 /**
  * jspm mate loader config
  *
@@ -43,6 +43,13 @@ export interface IBundlesConfig extends IAsserts {
      * @memberOf BundlesConfig
      */
     mainfile?: string;
+    /**
+     * mainfile pipe works.
+     *
+     * @type {Pipe[]}
+     * @memberOf IBundlesConfig
+     */
+    mainfilePipes?: Pipe[];
     /**
      * mainfile includes libs.
      * default includes

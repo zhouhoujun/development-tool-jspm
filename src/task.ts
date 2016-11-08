@@ -446,7 +446,7 @@ export class JspmBundle extends PipeTask {
                     stream.end();
                 });
 
-                return super.working(stream.pipe(vinylBuffer()), config, option, gulp);
+                return super.working(stream.pipe(vinylBuffer()), config, option, gulp, option.mainfilePipes);
             });
 
         // if (!existsSync(mainfile)) {
