@@ -44,7 +44,17 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf BundlesConfig
      */
-    file?: string;
+    mainfile?: string;
+    /**
+     * mainfile includes libs. 
+     * default includes 
+     *   ./system-polyfills.src.js,
+     *   ./system.src.js
+     * 
+     * @type {string[]}
+     * @memberOf IBundlesConfig
+     */
+    includes?: string[];
     /**
      * deploy bust.
      * 

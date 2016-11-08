@@ -22,10 +22,9 @@ export declare class JspmBundle extends PipeTask {
     private exclusionArray(exclude, groups);
     private createBundler(config, builder, bundleName, bundleStr, bundleDest, bundleOpts, gulp);
     private calcChecksums(option, bundles);
-    protected updateBundleManifest(option: IBundlesConfig, bundles: any[], chksums?: any): Promise<any>;
-    protected removeFromBundleManifest(option: IBundlesConfig, bundles: any): Promise<any>;
+    protected updateBundleManifest(option: IBundlesConfig, bundles: any[], chksums?: any): any;
     private manifestSplit;
-    private writeBundleManifest(option, manifest);
+    private writeBundleManifest(config, manifest, gulp);
     private getBundleManifestPath(option);
     private getBundleManifest(option);
     private getBundleShortPath(config, bundleName, bundleOpts);

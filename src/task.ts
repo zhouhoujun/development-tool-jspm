@@ -4,7 +4,7 @@ import { Gulp } from 'gulp';
 import * as path from 'path';
 import { IJspmTaskConfig, IBundlesConfig, IBundleGroup } from './config';
 
-import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { readFileSync, readFile, existsSync, writeFileSync } from 'fs';
 import * as chalk from 'chalk';
 const jspm = require('jspm');
 const source = require('vinyl-source-stream');
@@ -85,15 +85,20 @@ export class JspmBundle extends PipeTask {
                 if (option.bundles) {
                     if (option.bust) {
                         return this.calcChecksums(option, this.bundles).then((checksums) => {
-                            return this.updateBundleManifest(option, this.bundles, checksums).then(function () {
-                                console.log(chalk.green('------ Complete -------------'));
-                            });
+                            return this.updateBundleManifest(option, this.bundles, checksums);;
                         });
                     } else {
-                        return this.updateBundleManifest(option, this.bundles).then(function () {
+                        return this.updateBundleManifest(option, this.bundles);
+                    }
+                } else {
+                    return null;
+                }
+            }).then(manifest => {
+                if (manifest) {
+                    return this.writeBundleManifest(<IJspmTaskConfig>config, manifest, gulp)
+                        .then(() => {
                             console.log(chalk.green('------ Complete -------------'));
                         });
-                    }
                 } else {
                     console.log(chalk.green('------ Complete -------------'));
                     return null;
@@ -290,44 +295,27 @@ export class JspmBundle extends PipeTask {
             }
         });
 
-        return this.writeBundleManifest(option, manifest);
-
-    }
-
-    protected removeFromBundleManifest(option: IBundlesConfig, bundles): Promise<any> {
-
-        var manifest: any = _.defaults(this.getBundleManifest(option), {
-            bundles: {},
-            chksums: {}
-        });
-
-        _.forEach(bundles, function (bundle) {
-            delete manifest.bundles[bundle.path];
-            delete manifest.chksums[bundle.path];
-        });
-
-        return this.writeBundleManifest(option, manifest);
+        return manifest;
 
     }
 
     private manifestSplit = `/*------bundles infos------*/`;
-    private writeBundleManifest(option: IBundlesConfig, manifest): Promise<any> {
-
-        if (!option.file) {
-            return Promise.resolve(true);
+    private writeBundleManifest(config: IJspmTaskConfig, manifest, gulp: Gulp): Promise<any> {
+        let option = config.option;
+        if (!option.mainfile) {
+            return Promise.reject('mainfile not configed.');
         }
 
 
         console.log('Writing manifest...');
 
-        let options = option;
 
         let output = `System.config({
-            baseURL: '${options.rootUri || '.'}',
+            baseURL: '${option.rootUri || '.'}',
             defaultJSExtensions: true
         });
         System.bundled = true;
-        System.bust = '${options.bust}';
+        System.bust = '${option.bust}';
         if(window != undefined) window.prod = true;
         ${this.manifestSplit}
         `;
@@ -432,23 +420,52 @@ export class JspmBundle extends PipeTask {
         }
 
         let mainfile = this.getBundleManifestPath(option);
-        if (!existsSync(mainfile)) {
-            mkdirp.sync(path.dirname(mainfile));
 
-            writeFileSync(mainfile, output, { flag: 'wx' });
-        } else {
-            writeFileSync(mainfile, output);
-        }
 
-        console.log(chalk.green('Manifest written'));
+        let includes = option.includes || [
+            './system-polyfills.src.js',
+            './system.src.js'
+        ]
+        return Promise.all(_.map(includes, f => {
+            return new Promise<string>((resolve, reject) => {
+                readFile(path.join(option.jspmConfig, f), 'utf8', (err, data) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(data);
+                    }
+                });
+            });
+        }))
+            .then(data => {
+                data.push(output);
+                mkdirp.sync(path.dirname(mainfile));
+                var stream = <NodeJS.ReadWriteStream>source(mainfile);
+                stream.write(data.join('\n'));
+                process.nextTick(() => {
+                    stream.end();
+                });
 
-        return Promise.resolve(true);
+                return super.working(stream.pipe(vinylBuffer()), config, option, gulp);
+            });
+
+        // if (!existsSync(mainfile)) {
+        //     mkdirp.sync(path.dirname(mainfile));
+
+        //     writeFileSync(mainfile, output, { flag: 'wx' });
+        // } else {
+        //     writeFileSync(mainfile, output);
+        // }
+
+        // console.log(chalk.green('Manifest written'));
+
+        // return Promise.resolve(true);
 
     }
 
     private getBundleManifestPath(option: IBundlesConfig): string {
         var url = option.baseURL;
-        return path.join(url, option.file);
+        return path.join(url, option.mainfile);
     }
     private getBundleManifest(option: IBundlesConfig): any {
         let data: any = {};
