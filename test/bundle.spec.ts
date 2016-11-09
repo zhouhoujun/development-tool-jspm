@@ -1,9 +1,13 @@
 import * as mocha from 'mocha';
 import { expect, assert } from 'chai';
-import { Operation, IDirLoaderOption, ITask, ITaskConfig, IDynamicLoaderOption } from 'development-core';
+import { Operation, IDirLoaderOption, ITask, bindingConfig, runTaskSequence, ITaskConfig, IDynamicLoaderOption } from 'development-core';
 
-import { IBuilder, IBundleGroup } from '../src';
-let root = __dirname;
+import * as gulp from 'gulp';
+import { IBundlesConfig, JspmBundle } from '../src';
+
+const del = require('del');
+let root: string = __dirname;
+
 import * as path from 'path';
 
 describe('Jspm bundle task', () => {
@@ -14,41 +18,20 @@ describe('Jspm bundle task', () => {
     //     factory = (option: IBundleGroup) => //new JspmBuilder(option);
     // })
 
-    it('create dynamic loader', async function () {
+    it('jspm bundle all', async () => {
+        await del(path.join(root, 'dist/dev'));
+        let cfg = bindingConfig({
+            env: { root: root, release: true },
+            option: <IBundlesConfig>{ baseURL: '', jspmConfig: 'app/development/jspm-config/config.js', src: 'app/**/*.js', dist: 'bundles' }
+        });
+        // expect(fs.existsSync(path.resolve(root, './app/test.html'))).eq(true);
 
-        // let taskconfig: ITaskConfig = factory({
-        //     root: path.join(config.dirname, config.dest),
-        //     baseURL: config.option.baseURL, // path.join(config.dirname, config.dest, config.option.baseURL),
-        //     baseUri: config.option.env.aspnet ? config.option.aspnetRoot : config.option.root,
-        //     dest: config.option.production.bundleDest,
-        //     file: config.option.production.bundleMain,
-        //     jspmConfig: config.option.jspmConfigFile,
-        //     bust: config.option.production.bust,
-        //     version: version,
-        //     jspmMetas: config.option.production.jspmMates,
-        //     builder: {
-        //         minify: true,
-        //         mangle: true,
-        //         sourceMaps: false,
-        //         separateCSS: config.option.production.separateCSS,
-        //         lowResSourceMaps: config.option.production.lowResSourceMaps,
-        //         config: {
-        //             paths: getPaths(config),
-        //             rootURL: config.js.dest
-        //         }
-        //     }
-        // })
+        let tasks: ITask[] = await cfg.findTasks(JspmBundle);
+        expect(tasks).to.not.null;
+        expect(tasks.length).eq(1);
 
-        // expect(taskconfig).to.not.null;
-        // expect(taskconfig).to.not.undefined;
-        // expect(taskconfig.env.config).to.equals('test');
-        // expect(taskconfig.oper).to.eq(Operation.build);
-        // expect(Array.isArray(taskconfig.option.loader)).to.false;
-        // expect(Array.isArray(taskconfig.option.loader['dynamicTasks'])).to.true;
+        await runTaskSequence(gulp, tasks, cfg);
 
-        // let tasks = await loader.load(taskconfig);
-        // expect(tasks).not.null;
-        // expect(tasks.length).eq(0);
     });
 
 })

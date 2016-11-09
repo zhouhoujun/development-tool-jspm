@@ -1,8 +1,8 @@
 import * as _ from 'lodash';
-import { task, ITaskConfig, RunWay, IAssertDist, Src, ITaskInfo, TransformSource, ITransform, Operation, PipeTask } from 'development-core';
+import { task, ITaskConfig, RunWay, IAssertDist, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask } from 'development-core';
 import { Gulp } from 'gulp';
 import * as path from 'path';
-import { IJspmTaskConfig, IBundlesConfig, IBundleGroup } from './config';
+import { IJspmTaskConfig, IBundlesConfig, IBundleGroup, IBuidlerConfig } from './config';
 
 import { readFileSync, readFile, existsSync, writeFileSync } from 'fs';
 import * as chalk from 'chalk';
@@ -59,7 +59,7 @@ export class JspmBundle extends PipeTask {
                 return this.loadBuilder(config)
                     .then(builder => {
                         let bundle: IBundleGroup = option.bundles[name];
-                        bundle.builder = _.defaults(bundle.builder, option.builder);
+                        bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
                         return this.groupBundle(<IJspmTaskConfig>config, name, bundle, gulp);
                     });
             })).then(groups => {
@@ -76,9 +76,42 @@ export class JspmBundle extends PipeTask {
         }
     }
 
+    initOption(option: IBundlesConfig) {
+        return _.extend(<IBundlesConfig>{
+            baseURL: '',
+            jspmConfig: 'jspm.conf.js',
+            dest: '',
+            file: '',
+            systemConfigTempl: '',
+            relationToRoot: '',
+            bust: '',
+            bundles: {},
+            jspmMates: {
+                '*.css': {
+                    loader: 'css'
+                },
+                '*.json': {
+                    loader: 'json'
+                },
+                '*.jsx': {
+                    loader: 'jsx'
+                }
+            },
+            builder: {
+                sfx: false,
+                minify: false,
+                mangle: false,
+                sourceMaps: false,
+                separateCSS: false,
+                lowResSourceMaps: true
+            }
+        }, option);
+    }
+
 
     execute(config: ITaskConfig, gulp: Gulp) {
         this.bundles = [];
+        config.option = this.initOption(<IBundlesConfig>config.option);
         return super.execute(config, gulp)
             .then(() => {
                 let option = <IBundlesConfig>config.option;
@@ -106,7 +139,7 @@ export class JspmBundle extends PipeTask {
             });
     }
 
-    protected working(source: ITransform, config: ITaskConfig, option: IAssertDist, gulp: Gulp) {
+    protected working(source: ITransform, config: ITaskConfig, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]) {
         let bundle = source['bundle'];
         if (bundle.sfx) {
             console.log(`Built sfx package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
@@ -120,7 +153,7 @@ export class JspmBundle extends PipeTask {
                     modules: bundle.modules
                 };
                 this.bundles.push(bundlemap);
-                return bundlemap;
+                return;
             });
     }
 
@@ -310,15 +343,16 @@ export class JspmBundle extends PipeTask {
         console.log('Writing manifest...');
 
 
-        let output = `System.config({
-            baseURL: '${option.rootUri || '.'}',
-            defaultJSExtensions: true
-        });
-        System.bundled = true;
-        System.bust = '${option.bust}';
-        if(window != undefined) window.prod = true;
-        ${this.manifestSplit}
-        `;
+        let output = `
+System.config({
+    baseURL: '${option.rootUri || '.'}',
+    defaultJSExtensions: true
+});
+System.bundled = true;
+System.bust = '${option.bust}';
+if(window != undefined) window.prod = true;
+${this.manifestSplit}
+`;
         let template = '';
 
         if (manifest) {
@@ -326,72 +360,61 @@ export class JspmBundle extends PipeTask {
             template = option.systemConfigTempl;
 
             if (!template) {
-                template = (option.bust) ?
-                    `
-                    (function(module) {
-                    var bust = {};
-                    var systemLocate = System.locate;
-                    var systemNormalize = System.normalize;
+                template = (option.bust) ? `
+    (function(module) {
+    var bust = {};
+    var systemLocate = System.locate;
+    var systemNormalize = System.normalize;
 
-                    var chksums = module.exports.chksums = \${chksums};
-                    var bundles = module.exports.bundles = \${bundles};                    
-                    var maps = \${ maps };
-                    var jspmMeta = \${ jspmMeta };
+    var chksums = module.exports.chksums = \${chksums};
+    var bundles = module.exports.bundles = \${bundles};                    
+    var maps = \${ maps };
+    var jspmMeta = \${ jspmMeta };
 
-                    System.config({
-                         packages: {
-                            "meta": jspmMeta
-                        },
-                        map: maps,
-                        //paths: paths,
-                        bundles: bundles
-                    });
+    System.config({
+            packages: {
+            "meta": jspmMeta
+        },
+        map: maps,
+        //paths: paths,
+        bundles: bundles
+    });
 
-                    System.normalize = function (name, pName, pAddress) {
-                        return systemNormalize.call(this, name, pName, pAddress).then(function (address) {
-                            var chksum = chksums[name];
-                            if (chksums[name]) { bust[address] = chksum; }
-                            return address;
-                        });
-                    };
+    System.normalize = function (name, pName, pAddress) {
+        return systemNormalize.call(this, name, pName, pAddress).then(function (address) {
+            var chksum = chksums[name];
+            if (chksums[name]) { bust[address] = chksum; }
+            return address;
+        });
+    };
 
-                    System.locate = function (load) {
-                        return Promise.resolve(systemLocate.call(this, load)).then(function (address) {
-                            var chksum = bust[address];
-                            return (chksum) ? address + '?' + chksum : address;
-                        });
-                    };
+    System.locate = function (load) {
+        return Promise.resolve(systemLocate.call(this, load)).then(function (address) {
+            var chksum = bust[address];
+            return (chksum) ? address + '?' + chksum : address;
+        });
+    };
 
-                })((typeof module !== 'undefined') ? module : {exports: {}}, this);
-                `
-                    :
-                    `
-                    (function(module) {
-                    var bundles = module.exports.bundles = \${bundles};
-                    var paths =  module.exports.paths = \${paths};
-                    var maps = \${ maps };
-                    var jspmMeta = \${ jspmMeta };
+})((typeof module !== 'undefined') ? module : {exports: {}}, this);
+` : `
+(function(module) {
+    var bundles = module.exports.bundles = \${bundles};
+    var paths =  module.exports.paths = \${paths};
+    var maps = \${ maps };
+    var jspmMeta = \${ jspmMeta };
 
-                    System.config({
-                         packages: {
-                            "meta": jspmMeta
-                        },
-                        map: maps,
-                        //paths: paths,
-                        bundles: bundles
-                    });
+    System.config({
+            packages: {
+            "meta": jspmMeta
+        },
+        map: maps,
+        //paths: paths,
+        bundles: bundles
+    });
 
-                })((typeof module !== 'undefined') ? module : {exports: {}}, this);
+})((typeof module !== 'undefined') ? module : {exports: {}}, this);
                 `;
             }
-
-            // } catch (e) {
-
-            //     console.log(' X Unable to open manifest template');
-            //     console.log(e);
-            //     return Promise.reject(<any>false);
-
-            // }
 
 
             let maps = {
