@@ -18,14 +18,7 @@ export interface IJspmMate {
  */
 export interface IBundlesConfig extends IAsserts {
     /**
-     * the bundle app path relation to root site.
-     * 
-     * @type {string}
-     * @memberOf BundlesConfig
-     */
-    rootUri?: string;
-    /**
-     * systemjs baseURL
+     * systemjs baseURL, the bundle app path relation to root site.
      * 
      * @type {string}
      * @memberOf BundlesConfig
@@ -38,14 +31,21 @@ export interface IBundlesConfig extends IAsserts {
      * @memberOf BundlesConfig
      */
     jspmConfig: string;
+
+    /**
+     * package.json file path.
+     * 
+     * @type {string}
+     * @memberOf IBundlesConfig
+     */
+    packageFile?: string;
     /**
      * bundle main file.
      * 
      * @type {string}
      * @memberOf BundlesConfig
      */
-    mainfile?: string;
-
+    mainfile: string;
     /**
      * mainfile pipe works.
      * 
