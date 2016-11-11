@@ -20,8 +20,8 @@ describe('Jspm bundle task', () => {
             option: <IBundlesConfig>{
                 baseURL: '',
                 mainfile: 'bundle.js',
-                jspmConfig: 'development/jspm-config/config.js',
-                src: 'development/app',
+                // jspmConfig: 'development/jspm-config/config.js',
+                src: ['development/app/home/**/*.js'],
                 dist: 'bundles'
              }
         });
@@ -33,6 +33,6 @@ describe('Jspm bundle task', () => {
 
         await runTaskSequence(gulp, tasks, cfg);
 
-    });
+    }, 60000 * 5);
 
 })

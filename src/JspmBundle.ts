@@ -36,9 +36,8 @@ export class JspmBundle extends PipeTask {
     }
 
     protected loadBuilder(config: ITaskConfig): Promise<any> {
-
         let option = <IBundlesConfig>config.option;
-        console.log(path.dirname(option.packageFile));
+        // console.log(path.dirname(option.packageFile));
         jspm.setPackagePath(path.dirname(option.packageFile));
         let jsbuilder = new jspm.Builder({ separateCSS: option.builder.separateCSS });
 
@@ -63,7 +62,10 @@ export class JspmBundle extends PipeTask {
                     .then(builder => {
                         let bundle: IBundleGroup = option.bundles[name];
                         bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
-                        return this.groupBundle(<IJspmTaskConfig>config, name, bundle, gulp);
+                        if ( option.builder.config ) {
+                            builder.config(bundle.builder.config);
+                        }
+                        return this.groupBundle(<IJspmTaskConfig>config, builder, name, bundle, gulp);
                     });
             })).then(groups => {
                 return _.flatten(groups);
@@ -72,33 +74,46 @@ export class JspmBundle extends PipeTask {
             return this.loadBuilder(config)
                 .then(builder => {
                     console.log('start bundle all src : ', chalk.cyan(<any>config.getSrc()));
-                    builder.config(option.builder.config)
-                    // let sfx = option.builder.sfx;
-                    // let bundler = (sfx) ? builder.buildStatic : builder.bundle;
-                    // return bundler.bind(builder)(config.getSrc(), option.builder);
+                    if ( option.builder.config ) {
+                        builder.config(option.builder.config)
+                    }
 
                     return Promise.resolve<string[]>(globby(config.getSrc()))
                         .then(files => {
-                             files = this.getRelativeSrc(files, option);
-                             return this.createBundler(<IJspmTaskConfig>config, builder, 'bundle', files.join(',') : src, option.mainfile, option.builder);
+                            files = this.getRelativeSrc(files, <IJspmTaskConfig>config);
+                            console.log(files);
+                            return this.createBundler(<IJspmTaskConfig>config, builder, 'bundle', files.join(' + '), option.mainfile, option.builder);
                         });
                 });
         }
     }
 
-    private getRelativeSrc(src: Src, option: IBundlesConfig): string[] {
+    private getRelativeSrc(src: Src, config: IJspmTaskConfig, toModule = false): string[] {
+        // console.log(option.baseURL);
+        let baseURL = config.option.baseURL
         if (_.isArray(src)) {
-            return _.map(src, s => path.relative(option.baseURL, s))
+            return _.map(src, s => {
+                let filename = path.relative(baseURL, s).replace(/\\/g, '/').replace(/^\//g, '');
+                return toModule ? this.toModulePath(filename) : filename;
+            });
         } else {
-            return [path.relative(option.baseURL, src)]
+            let fn = path.relative(baseURL, src).replace(/\\/g, '/').replace(/^\//g, '');
+            return [(toModule ? this.toModulePath(fn) : fn)];
         }
+    }
+
+    private toModulePath(filename: string): string {
+        if (!filename) {
+            return '';
+        }
+        return filename.substring(0, filename.length - path.extname(filename).length);
     }
 
     private initOption(config: ITaskConfig) {
         let option = <IBundlesConfig>_.extend(<IBundlesConfig>{
             baseURL: '',
             mainfile: 'bundle.js',
-            jspmConfig: 'jspm.conf.js',
+            jspmConfig: '',
             packageFile: 'package.json',
             dest: '',
             file: '',
@@ -143,7 +158,7 @@ export class JspmBundle extends PipeTask {
                 if (option.bundles) {
                     if (option.bust) {
                         return this.calcChecksums(option, this.bundles).then((checksums) => {
-                            return this.updateBundleManifest(option, this.bundles, checksums);;
+                            return this.updateBundleManifest(option, this.bundles, checksums);
                         });
                     } else {
                         return this.updateBundleManifest(option, this.bundles);
@@ -199,7 +214,7 @@ export class JspmBundle extends PipeTask {
         return groups;
     }
 
-    protected groupBundle(config: IJspmTaskConfig, name: string, bundleGp: IBundleGroup, gulp: Gulp): Promise<any> {
+    protected groupBundle(config: IJspmTaskConfig, builder, name: string, bundleGp: IBundleGroup, gulp: Gulp): Promise<any> {
 
         let option: IBundlesConfig = config.option;
 
@@ -215,23 +230,8 @@ export class JspmBundle extends PipeTask {
 
         console.log(`-------------------------------\nBundling group: ${chalk.cyan(name)} ... \ngroup items:\n  ${chalk.cyan(<any>bundleItems)}\n-------------------------------`);
 
-
-        let jsbuilder = new jspm.Builder({ separateCSS: bundleGp.builder.separateCSS });
-
-        return Promise.resolve(jsbuilder)
+        return Promise.resolve(builder)
             .then(builder => {
-                if (option.jspmConfig) {
-                    return builder.loadConfig(option.jspmConfig, undefined, true)
-                        .then(() => {
-                            return builder;
-                        });
-                } else {
-                    return builder;
-                }
-            })
-            .then(builder => {
-                builder.config(bundleGp.builder.config);
-
                 if (bundleGp.combine) {
                     bundleDest = this.getBundleDest(config, name, bundleGp);
                     bundleStr = bundleItems.join(' + ') + minusStr;

@@ -1,3 +1,4 @@
 export * from './config';
-export * from './task';
+export * from './JspmBundle';
+export * from './htmlBundle';
 // export * from './JspmBuilder';

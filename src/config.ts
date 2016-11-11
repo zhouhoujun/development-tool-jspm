@@ -1,4 +1,4 @@
-import { Pipe, IMap, IAsserts, ITaskConfig } from 'development-core'
+import { Src, Pipe, IMap, IAsserts, ITaskConfig } from 'development-core'
 
 /**
  * jspm mate loader config
@@ -18,6 +18,13 @@ export interface IJspmMate {
  */
 export interface IBundlesConfig extends IAsserts {
     /**
+     * index html etc.
+     * 
+     * @type {Src}
+     * @memberOf IBundlesConfig
+     */
+    index?: Src;
+    /**
      * systemjs baseURL, the bundle app path relation to root site.
      * 
      * @type {string}
@@ -30,7 +37,7 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf BundlesConfig
      */
-    jspmConfig: string;
+    jspmConfig?: string;
 
     /**
      * package.json file path.
