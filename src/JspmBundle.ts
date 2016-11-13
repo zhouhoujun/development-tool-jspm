@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { task, ITaskConfig, RunWay, IAssertDist, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask } from 'development-core';
+import { task, ITaskConfig, RunWay, IAssertDist, ITaskContext, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask } from 'development-core';
 import { Gulp } from 'gulp';
 import * as path from 'path';
 import { IJspmTaskConfig, IBundlesConfig, IBundleGroup, IBuidlerConfig } from './config';
@@ -31,12 +31,12 @@ export class JspmBundle extends PipeTask {
         super(info);
     }
 
-    protected getOption(config: ITaskConfig): IAssertDist {
+    protected getOption(config: ITaskContext): IAssertDist {
         return config.option;
     }
 
-    protected loadBuilder(config: ITaskConfig): Promise<any> {
-        let option = <IBundlesConfig>config.option;
+    protected loadBuilder(ctx: ITaskContext): Promise<any> {
+        let option = <IBundlesConfig>ctx.option;
         // console.log(path.dirname(option.packageFile));
         jspm.setPackagePath(path.dirname(option.packageFile));
         let jsbuilder = new jspm.Builder({ separateCSS: option.builder.separateCSS });
@@ -54,35 +54,35 @@ export class JspmBundle extends PipeTask {
             });
     }
 
-    sourceStream(config: ITaskConfig, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource> {
-        let option = <IBundlesConfig>config.option;
+    sourceStream(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource> {
+        let option = <IBundlesConfig>ctx.option;
         if (option.bundles) {
-            return Promise.all(_.map(this.getbundles(config), name => {
-                return this.loadBuilder(config)
+            return Promise.all(_.map(this.getbundles(ctx), name => {
+                return this.loadBuilder(ctx)
                     .then(builder => {
                         let bundle: IBundleGroup = option.bundles[name];
                         bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
                         if ( option.builder.config ) {
                             builder.config(bundle.builder.config);
                         }
-                        return this.groupBundle(<IJspmTaskConfig>config, builder, name, bundle, gulp);
+                        return this.groupBundle(<IJspmTaskConfig>ctx, builder, name, bundle, gulp);
                     });
             })).then(groups => {
                 return _.flatten(groups);
             });
         } else {
-            return this.loadBuilder(config)
+            return this.loadBuilder(ctx)
                 .then(builder => {
-                    console.log('start bundle all src : ', chalk.cyan(<any>config.getSrc()));
+                    console.log('start bundle all src : ', chalk.cyan(<any>ctx.getSrc()));
                     if ( option.builder.config ) {
                         builder.config(option.builder.config)
                     }
 
-                    return Promise.resolve<string[]>(globby(config.getSrc()))
+                    return Promise.resolve<string[]>(globby(ctx.getSrc()))
                         .then(files => {
-                            files = this.getRelativeSrc(files, <IJspmTaskConfig>config);
+                            files = this.getRelativeSrc(files, <IJspmTaskConfig>ctx);
                             console.log(files);
-                            return this.createBundler(<IJspmTaskConfig>config, builder, 'bundle', files.join(' + '), option.mainfile, option.builder);
+                            return this.createBundler(<IJspmTaskConfig>ctx, builder, 'bundle', files.join(' + '), option.mainfile, option.builder);
                         });
                 });
         }
@@ -109,7 +109,7 @@ export class JspmBundle extends PipeTask {
         return filename.substring(0, filename.length - path.extname(filename).length);
     }
 
-    private initOption(config: ITaskConfig) {
+    private initOption(ctx: ITaskContext) {
         let option = <IBundlesConfig>_.extend(<IBundlesConfig>{
             baseURL: '',
             mainfile: 'bundle.js',
@@ -140,21 +140,21 @@ export class JspmBundle extends PipeTask {
                 separateCSS: false,
                 lowResSourceMaps: true
             }
-        }, <IBundlesConfig>config.option);
+        }, <IBundlesConfig>ctx.option);
 
-        option.baseURL = config.toRootPath(option.baseURL);
-        option.jspmConfig = config.toRootPath(option.jspmConfig);
-        option.packageFile = config.toRootPath(option.packageFile);
+        option.baseURL = ctx.toRootPath(option.baseURL);
+        option.jspmConfig = ctx.toRootPath(option.jspmConfig);
+        option.packageFile = ctx.toRootPath(option.packageFile);
 
         return option;
     }
 
 
-    execute(config: ITaskConfig, gulp: Gulp) {
+    execute(ctx: ITaskContext, gulp: Gulp) {
         this.bundles = [];
-        return super.execute(config, gulp)
+        return super.execute(ctx, gulp)
             .then(() => {
-                let option = <IBundlesConfig>config.option;
+                let option = <IBundlesConfig>ctx.option;
                 if (option.bundles) {
                     if (option.bust) {
                         return this.calcChecksums(option, this.bundles).then((checksums) => {
@@ -168,7 +168,7 @@ export class JspmBundle extends PipeTask {
                 }
             }).then(manifest => {
                 if (manifest) {
-                    return this.writeBundleManifest(<IJspmTaskConfig>config, manifest, gulp)
+                    return this.writeBundleManifest(<IJspmTaskConfig>ctx, manifest, gulp)
                         .then(() => {
                             console.log(chalk.green('------ Complete -------------'));
                         });
@@ -179,19 +179,19 @@ export class JspmBundle extends PipeTask {
             });
     }
 
-    setup(config: ITaskConfig, gulp: Gulp) {
-        config.option = this.initOption(config);
-        return super.setup(config, gulp);
+    setup(ctx: ITaskContext, gulp: Gulp) {
+        ctx.option = this.initOption(ctx);
+        return super.setup(ctx, gulp);
     }
 
-    protected working(source: ITransform, config: ITaskConfig, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]) {
+    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]) {
         let bundle = source['bundle'];
         if (bundle.sfx) {
             console.log(`Built sfx package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
         } else {
             console.log(`Bundled package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
         }
-        return super.working(source, config, option, gulp)
+        return super.working(source, ctx, option, gulp)
             .then(() => {
                 let bundlemap: IBundleMap = {
                     path: bundle.shortPath,
@@ -202,9 +202,9 @@ export class JspmBundle extends PipeTask {
             });
     }
 
-    getbundles(config: ITaskConfig) {
-        let option = <IBundlesConfig>config.option;
-        let groups = _.uniq(_.isArray(config.env.gb) ? config.env.gb : (config.env.gb || '').split(','));
+    getbundles(ctx: ITaskContext) {
+        let option = <IBundlesConfig>ctx.option;
+        let groups = _.uniq(_.isArray(ctx.env.gb) ? ctx.env.gb : (ctx.env.gb || '').split(','));
         if (groups.length < 1) {
             groups = _.keys(option.bundles);
         } else {

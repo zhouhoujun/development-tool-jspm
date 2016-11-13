@@ -1,9 +1,9 @@
 import * as _ from 'lodash';
-import { task, ITaskConfig, RunWay, IAssertDist, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask } from 'development-core';
+import { task, ITaskContext, IAssertDist, Pipe, ITaskInfo, TransformSource, Operation, PipeTask } from 'development-core';
 import { Gulp } from 'gulp';
 import * as htmlreplace from 'gulp-html-replace';
 
-import { IJspmTaskConfig, IBundlesConfig } from './config';
+import { IBundlesConfig } from './config';
 
 @task({
     oper: Operation.release | Operation.deploy
@@ -14,19 +14,19 @@ export class MainBundle extends PipeTask {
         super(info);
     }
 
-    sourceStream(config: ITaskConfig, option: IAssertDist, gulp: Gulp): TransformSource | Promise<TransformSource> {
-        let cfgopt = <IBundlesConfig>config.option;
+    sourceStream(ctx: ITaskContext, option: IAssertDist, gulp: Gulp): TransformSource | Promise<TransformSource> {
+        let cfgopt = <IBundlesConfig>ctx.option;
         return gulp.src(cfgopt.index)
     }
 
-    pipes(config: ITaskConfig, dist: IAssertDist, gulp?: Gulp): Pipe[] {
+    pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[] {
         let pipes = <Pipe[]>[
-            (config: ITaskConfig) => {
-                let option = <IBundlesConfig>config.option;
-                return htmlreplace({'js': option.mainfile + '?bust=' + option.bust});
+            (ctx: ITaskContext) => {
+                let option = <IBundlesConfig>ctx.option;
+                return htmlreplace({ 'js': option.mainfile + '?bust=' + option.bust });
             }
         ];
 
-        return  pipes.concat(super.pipes(config, dist, gulp));
+        return pipes.concat(super.pipes(ctx, dist, gulp));
     }
 }
