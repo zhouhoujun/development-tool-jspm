@@ -1,10 +1,10 @@
 import * as _ from 'lodash';
-import { task, ITaskConfig, RunWay, IAssertDist, ITaskContext, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask } from 'development-core';
+import { task, RunWay, IAssertDist, ITaskContext, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask, bindingConfig } from 'development-core';
 import { Gulp } from 'gulp';
 import * as path from 'path';
-import { IJspmTaskConfig, IBundlesConfig, IBundleGroup, IBuidlerConfig } from './config';
+import { IJspmTaskContext, IBundlesConfig, IBundleGroup, IBuidlerConfig, IBundleMap, IBundleTransform } from './config';
 
-import { readFileSync, readFile, existsSync, writeFileSync } from 'fs';
+import { readFileSync, readFile, existsSync, writeFileSync, readdirSync } from 'fs';
 import * as chalk from 'chalk';
 const globby = require('globby');
 const jspm = require('jspm');
@@ -14,10 +14,6 @@ const chksum = require('checksum');
 const mkdirp = require('mkdirp');
 // const uglify = require('gulp-uglify');
 
-export interface IBundleMap {
-    path: string;
-    modules: Src
-}
 
 @task({
     oper: Operation.release | Operation.deploy
@@ -37,7 +33,6 @@ export class JspmBundle extends PipeTask {
 
     protected loadBuilder(ctx: ITaskContext): Promise<any> {
         let option = <IBundlesConfig>ctx.option;
-        // console.log(path.dirname(option.packageFile));
         jspm.setPackagePath(path.dirname(option.packageFile));
         let jsbuilder = new jspm.Builder({ separateCSS: option.builder.separateCSS });
 
@@ -54,7 +49,19 @@ export class JspmBundle extends PipeTask {
             });
     }
 
-    sourceStream(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource> {
+    private translate(trans: IBundleTransform | IBundleTransform[]): ITransform | ITransform[] {
+        if (_.isArray(trans)) {
+            return _.map(trans, t => {
+                t.stream['bundle'] = t.bundle;
+                return t.stream;
+            });
+        } else {
+            trans.stream['bundle'] = trans.bundle;
+            return trans.stream;
+        }
+    }
+
+    source(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource> {
         let option = <IBundlesConfig>ctx.option;
         if (option.bundles) {
             return Promise.all(_.map(this.getbundles(ctx), name => {
@@ -62,10 +69,11 @@ export class JspmBundle extends PipeTask {
                     .then(builder => {
                         let bundle: IBundleGroup = option.bundles[name];
                         bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
-                        if ( option.builder.config ) {
+                        if (option.builder.config) {
                             builder.config(bundle.builder.config);
                         }
-                        return this.groupBundle(<IJspmTaskConfig>ctx, builder, name, bundle, gulp);
+                        return this.groupBundle(<IJspmTaskContext>ctx, builder, name, bundle, gulp)
+                            .then(trans => this.translate(trans));
                     });
             })).then(groups => {
                 return _.flatten(groups);
@@ -73,22 +81,24 @@ export class JspmBundle extends PipeTask {
         } else {
             return this.loadBuilder(ctx)
                 .then(builder => {
-                    console.log('start bundle all src : ', chalk.cyan(<any>ctx.getSrc()));
-                    if ( option.builder.config ) {
+                    let src = ctx.getSrc(this.getInfo());
+                    console.log('start bundle all src : ', chalk.cyan(<any>src));
+                    if (option.builder.config) {
                         builder.config(option.builder.config)
                     }
 
-                    return Promise.resolve<string[]>(globby(ctx.getSrc()))
+                    return Promise.resolve<string[]>(globby(src))
                         .then(files => {
-                            files = this.getRelativeSrc(files, <IJspmTaskConfig>ctx);
-                            console.log(files);
-                            return this.createBundler(<IJspmTaskConfig>ctx, builder, 'bundle', files.join(' + '), option.mainfile, option.builder);
+                            files = this.getRelativeSrc(files, <IJspmTaskContext>ctx);
+                            console.log('bundle files:', chalk.cyan(<any>files));
+                            return this.createBundler(<IJspmTaskContext>ctx, builder, 'bundle', files.join(' + '), option.mainfile, option.builder)
+                                .then(trans => this.translate(trans));
                         });
                 });
         }
     }
 
-    private getRelativeSrc(src: Src, config: IJspmTaskConfig, toModule = false): string[] {
+    private getRelativeSrc(src: Src, config: IJspmTaskContext, toModule = false): string[] {
         // console.log(option.baseURL);
         let baseURL = config.option.baseURL
         if (_.isArray(src)) {
@@ -121,6 +131,10 @@ export class JspmBundle extends PipeTask {
             relationToRoot: '',
             bust: '',
             bundles: null,
+            includePackageFiles: [
+                'system-polyfills.src.js',
+                'system.src.js'
+            ],
             jspmMates: {
                 '*.css': {
                     loader: 'css'
@@ -143,32 +157,46 @@ export class JspmBundle extends PipeTask {
         }, <IBundlesConfig>ctx.option);
 
         option.baseURL = ctx.toRootPath(option.baseURL);
-        option.jspmConfig = ctx.toRootPath(option.jspmConfig);
+        if (option.jspmConfig) {
+            option.jspmConfig = ctx.toRootPath(option.jspmConfig);
+        }
         option.packageFile = ctx.toRootPath(option.packageFile);
+
+        let pkg = this.getPackage(option);
+        if (!option.jspmPackages) {
+            if (pkg.jspm.directories && pkg.jspm.directories.packages) {
+                option.jspmPackages = <string>pkg.jspm.directories.packages;
+            } else {
+                option.jspmPackages = 'jspm_packages';
+            }
+        }
+        option.jspmPackages = ctx.toRootPath(option.jspmPackages);
+
+        if (!readdirSync(option.jspmPackages)) {
+            console.log(chalk.red('jspm project config error!'));
+            process.exit(0);
+        }
 
         return option;
     }
 
 
-    execute(ctx: ITaskContext, gulp: Gulp) {
+    execute(context: ITaskContext, gulp: Gulp) {
         this.bundles = [];
+        let ctx = <IJspmTaskContext>context;
         return super.execute(ctx, gulp)
             .then(() => {
                 let option = <IBundlesConfig>ctx.option;
                 if (option.bundles) {
-                    if (option.bust) {
-                        return this.calcChecksums(option, this.bundles).then((checksums) => {
-                            return this.updateBundleManifest(option, this.bundles, checksums);
-                        });
-                    } else {
-                        return this.updateBundleManifest(option, this.bundles);
-                    }
+                    return this.calcChecksums(option, this.bundles).then((checksums) => {
+                        return this.updateBundleManifest(ctx, this.bundles, checksums);
+                    });
                 } else {
                     return null;
                 }
             }).then(manifest => {
                 if (manifest) {
-                    return this.writeBundleManifest(<IJspmTaskConfig>ctx, manifest, gulp)
+                    return this.writeBundleManifest(ctx, manifest, gulp)
                         .then(() => {
                             console.log(chalk.green('------ Complete -------------'));
                         });
@@ -185,36 +213,40 @@ export class JspmBundle extends PipeTask {
     }
 
     protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]) {
-        let bundle = source['bundle'];
-        if (bundle.sfx) {
-            console.log(`Built sfx package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
-        } else {
-            console.log(`Bundled package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
-        }
-        return super.working(source, ctx, option, gulp)
+        let bundle = <IBundleMap>source['bundle'];
+        return super.working(source, ctx, option, gulp, pipes, output)
             .then(() => {
                 let bundlemap: IBundleMap = {
-                    path: bundle.shortPath,
+                    path: bundle.path,
                     modules: bundle.modules
                 };
                 this.bundles.push(bundlemap);
+                if (bundle.sfx) {
+                    console.log(`Built sfx package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
+                } else {
+                    console.log(`Bundled package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
+                }
                 return;
             });
     }
 
     getbundles(ctx: ITaskContext) {
         let option = <IBundlesConfig>ctx.option;
-        let groups = _.uniq(_.isArray(ctx.env.gb) ? ctx.env.gb : (ctx.env.gb || '').split(','));
+        let groups = [];
+        if (ctx.env.gb) {
+            groups = _.uniq(_.isArray(ctx.env.gb) ? ctx.env.gb : (ctx.env.gb || '').split(','));
+        }
+
         if (groups.length < 1) {
             groups = _.keys(option.bundles);
         } else {
             groups = _.filter(groups, f => f && groups[f]);
         }
-
+        console.log('cmmand group bundle:', chalk.cyan(<any>groups));
         return groups;
     }
 
-    protected groupBundle(config: IJspmTaskConfig, builder, name: string, bundleGp: IBundleGroup, gulp: Gulp): Promise<any> {
+    protected groupBundle(config: IJspmTaskContext, builder, name: string, bundleGp: IBundleGroup, gulp: Gulp): Promise<IBundleTransform | IBundleTransform[]> {
 
         let option: IBundlesConfig = config.option;
 
@@ -228,24 +260,20 @@ export class JspmBundle extends PipeTask {
             bundleItems = _.isArray(bundleItems) ? <string[]>bundleGp.items : _.keys(bundleGp.items);
         }
 
-        console.log(`-------------------------------\nBundling group: ${chalk.cyan(name)} ... \ngroup items:\n  ${chalk.cyan(<any>bundleItems)}\n-------------------------------`);
+        if (bundleGp.combine) {
+            bundleDest = this.getBundleDest(config, name, bundleGp);
+            bundleStr = bundleItems.join(' + ') + minusStr;
+            console.log(`Bundling group: ${chalk.cyan(name)} ... \ngroup source:\n  ${chalk.cyan(bundleStr)}\n-------------------------------`);
+            return this.createBundler(config, builder, name, bundleStr, bundleDest, bundleGp.builder, bundleGp);
 
-        return Promise.resolve(builder)
-            .then(builder => {
-                if (bundleGp.combine) {
-                    bundleDest = this.getBundleDest(config, name, bundleGp);
-                    bundleStr = bundleItems.join(' + ') + minusStr;
-                    return this.createBundler(config, builder, name, bundleStr, bundleDest, bundleGp.builder, bundleGp);
-
-                } else {
-                    return Promise.all(bundleItems.map(key => {
-                        bundleStr = key + minusStr;
-                        bundleDest = this.getBundleDest(config, key, bundleGp);
-                        return this.createBundler(config, builder, key, bundleStr, bundleDest, bundleGp.builder, bundleGp);
-                    }));
-                }
-
-            });
+        } else {
+            console.log(`Bundling group: ${chalk.cyan(name)} ... \ngroup items:\n  ${chalk.cyan(<any>bundleItems)}\n-------------------------------`);
+            return Promise.all(bundleItems.map(key => {
+                bundleStr = key + minusStr;
+                bundleDest = this.getBundleDest(config, key, bundleGp);
+                return this.createBundler(config, builder, key, bundleStr, bundleDest, bundleGp.builder, bundleGp);
+            }));
+        }
     }
 
     private exclusionString(exclude, groups): string {
@@ -269,7 +297,7 @@ export class JspmBundle extends PipeTask {
         return minus;
     }
 
-    private createBundler(config: IJspmTaskConfig, builder: any, bundleName: string, bundleStr: string, bundleDest: string, builderCfg: IBuidlerConfig, bundleGp?: IBundleGroup): Promise<any> {
+    private createBundler(config: IJspmTaskContext, builder: any, bundleName: string, bundleStr: string, bundleDest: string, builderCfg: IBuidlerConfig, bundleGp?: IBundleGroup): Promise<IBundleTransform> {
 
         let sfx = builderCfg.sfx;
         let bundler = (sfx) ? builder.buildStatic : builder.bundle;
@@ -281,28 +309,41 @@ export class JspmBundle extends PipeTask {
                 mkdirp.sync(path.dirname(bundleDest));
                 var stream: ITransform = source(filename);
                 stream.write(output.source);
-                process.nextTick(function () {
+                process.nextTick(function() {
                     stream.end();
                 });
 
-                return stream.pipe(vinylBuffer());
-            })
-            .then(output => {
-                output['bundle'] = {
-                    sfx: sfx,
-                    path: shortPath,
-                    bundleName: bundleName,
-                    filename: filename,
-                    bundleDest: bundleDest,
-                    modules: output.modules
-                };
-                return output;
-            });
 
+                // transform['bundle'] = {
+                //     sfx: sfx,
+                //     path: shortPath,
+                //     bundleName: bundleName,
+                //     filename: filename,
+                //     bundleDest: bundleDest,
+                //     modules: output.modules
+                // };
+                return {
+                    stream: stream.pipe(vinylBuffer()),
+                    bundle: {
+                        path: shortPath,
+                        sfx: sfx,
+                        bundleName: bundleName,
+                        filename: filename,
+                        bundleDest: bundleDest,
+                        modules: output.modules
+                    }
+                };
+            });
 
     }
 
-
+    private packages = {};
+    public getPackage(option: IBundlesConfig): any {
+        if (!this.packages[option.packageFile]) {
+            this.packages[option.packageFile] = require(option.packageFile);
+        }
+        return this.packages[option.packageFile]
+    }
 
     private calcChecksums(option: IBundlesConfig, bundles: any[]): Promise<any> {
         let chksums = {};
@@ -315,7 +356,7 @@ export class JspmBundle extends PipeTask {
             }
 
             return new Promise((resolve, reject) => {
-                let filepath = path.join(option.baseURL, bundle.path);
+                let filepath = path.join(option.baseURL || '.', bundle.path);
                 let filename = path.parse(bundle.path).base;
                 chksum.file(filepath, (err, sum) => {
                     if (err) {
@@ -332,11 +373,11 @@ export class JspmBundle extends PipeTask {
         });
     }
 
-    protected updateBundleManifest(option: IBundlesConfig, bundles: any[], chksums?: any) {
+    protected updateBundleManifest(ctx: IJspmTaskContext, bundles: any[], chksums?: any) {
 
         chksums = chksums || {};
 
-        var manifest: any = _.defaults(this.getBundleManifest(option), {
+        var manifest: any = _.defaults(this.getBundleManifest(ctx), {
             bundles: {},
             chksums: {}
         });
@@ -355,8 +396,8 @@ export class JspmBundle extends PipeTask {
     }
 
     private manifestSplit = `/*------bundles infos------*/`;
-    private writeBundleManifest(config: IJspmTaskConfig, manifest, gulp: Gulp): Promise<any> {
-        let option = config.option;
+    private writeBundleManifest(ctx: IJspmTaskContext, manifest, gulp: Gulp): Promise<any> {
+        let option = ctx.option;
         if (!option.mainfile) {
             return Promise.reject('mainfile not configed.');
         }
@@ -367,7 +408,7 @@ export class JspmBundle extends PipeTask {
 
         let output = `
 System.config({
-    baseURL: '${ path.relative(option.baseURL, config.env.root) || '.'}',
+    baseURL: '${ path.relative(option.baseURL, ctx.env.root) || '.'}',
     defaultJSExtensions: true
 });
 System.bundled = true;
@@ -453,24 +494,22 @@ ${this.manifestSplit}
                 }
             });
 
-            let jspmMetas = option.jspmMetas;
+            let jspmMetas = option.jspmMates;
             output += _.template(template)({
                 maps: JSON.stringify(maps, null, '    '),
                 jspmMeta: JSON.stringify(jspmMetas, null, '    '),
-                paths: JSON.stringify(config.option.builder.config ? config.option.builder.config.paths : null, null, '    '),
+                paths: JSON.stringify(ctx.option.builder.config ? ctx.option.builder.config.paths : null, null, '    '),
                 chksums: JSON.stringify(manifest.chksums, null, '    '),
                 bundles: JSON.stringify(manifest.bundles, null, '    '),
             });
 
         }
 
-        let mainfile = this.getBundleManifestPath(option);
 
+        let includes = option.includes || [];
 
-        let includes = option.includes || [
-            './system-polyfills.src.js',
-            './system.src.js'
-        ]
+        includes = includes.concat(_.map(option.includePackageFiles, f => path.join(option.jspmPackages, f)));
+
         return Promise.all(_.map(includes, f => {
             return new Promise<string>((resolve, reject) => {
                 readFile(path.join(option.jspmConfig, f), 'utf8', (err, data) => {
@@ -484,6 +523,8 @@ ${this.manifestSplit}
         }))
             .then(data => {
                 data.push(output);
+                let mainfile = option.mainfile; // path.relative(this.getBundleManifestPath(ctx), ctx.getDist(this.getInfo()));
+                // console.log('mainfile:', mainfile);
                 mkdirp.sync(path.dirname(mainfile));
                 var stream = <NodeJS.ReadWriteStream>source(mainfile);
                 stream.write(data.join('\n'));
@@ -491,49 +532,39 @@ ${this.manifestSplit}
                     stream.end();
                 });
 
-                return super.working(stream.pipe(vinylBuffer()), config, option, gulp, option.mainfilePipes);
+                return super.working(stream.pipe(vinylBuffer()), ctx, option, gulp, option.mainfilePipes, option.mainfileOutput);
             });
 
-        // if (!existsSync(mainfile)) {
-        //     mkdirp.sync(path.dirname(mainfile));
-
-        //     writeFileSync(mainfile, output, { flag: 'wx' });
-        // } else {
-        //     writeFileSync(mainfile, output);
-        // }
-
-        // console.log(chalk.green('Manifest written'));
-
-        // return Promise.resolve(true);
-
     }
 
-    private getBundleManifestPath(option: IBundlesConfig): string {
-        var url = option.baseURL;
-        return path.join(url, option.mainfile);
+    private getBundleManifestPath(ctx: IJspmTaskContext): string {
+        return this.getBundleDest(ctx, ctx.option.mainfile);
     }
-    private getBundleManifest(option: IBundlesConfig): any {
+    private getBundleManifest(ctx: IJspmTaskContext): any {
         let data: any = {};
-        let path: string = this.getBundleManifestPath(option);
-        if (existsSync(path)) {
+        let mainfile: string = this.getBundleManifestPath(ctx);
+        console.log('try to load old bundle in path ', mainfile);
+        if (existsSync(mainfile)) {
             try {
-                let content = readFileSync(path, 'utf8');
+                let content = readFileSync(mainfile, 'utf8');
                 let idx = content.indexOf(this.manifestSplit);
                 idx = idx > 0 ? (idx + this.manifestSplit.length) : 0;
                 content = content.substring(idx);
                 // console.log(content);
-                writeFileSync(path, content);
-                data = require(path);
-                console.log('has old bundle：\n', chalk.cyan(path)); // , 'data:\n', data);
+                writeFileSync(mainfile, content);
+                data = require(mainfile);
+                console.log('has old bundle：\n', chalk.cyan(mainfile)); // , 'data:\n', data);
             } catch (e) {
                 console.log(chalk.red(e));
             }
+        } else {
+            console.log('no old bundle：\n', chalk.cyan(mainfile)); // , 'data:\n', data);
         }
 
         return data;
     }
 
-    private getBundleShortPath(config: IJspmTaskConfig, bundleName: string, bundleGp?: IBundleGroup) {
+    private getBundleShortPath(config: IJspmTaskContext, bundleName: string, bundleGp?: IBundleGroup) {
         var fullPath = bundleGp ? this.getBundleDest(config, bundleName, bundleGp)
             : path.join(config.getDist(), bundleName);
 
@@ -542,17 +573,21 @@ ${this.manifestSplit}
         return spath;
     }
 
-    private getBundleDest(config: IJspmTaskConfig, bundleName: string, bundleGp: IBundleGroup) {
+    private getBundleDest(config: IJspmTaskContext, bundleName: string, bundleGp?: IBundleGroup) {
 
         let dest = config.getDist();
-        let min = bundleGp.builder.minify;
-        let name = bundleGp.items[bundleName] || bundleName;
-        let file = name + ((min) ? '.min.js' : '.js');
+        if (bundleGp) {
+            let min = bundleGp.builder.minify;
+            let name = bundleGp.items[bundleName] || bundleName;
+            let file = name + ((min) ? '.min.js' : '.js');
 
-        if (bundleGp.combine) {
-            dest = path.join(dest, file);
+            if (bundleGp.combine) {
+                dest = path.join(dest, file);
+            } else {
+                dest = path.join(dest, bundleName, file);
+            }
         } else {
-            dest = path.join(dest, bundleName, file);
+            dest = path.join(dest, bundleName);
         }
 
         return dest;

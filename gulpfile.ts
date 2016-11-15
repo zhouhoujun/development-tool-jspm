@@ -7,6 +7,7 @@ Development.create(gulp, __dirname, {
     tasks: <ITaskOption>{
         src: 'src',
         dist: 'lib',
+        buildDist: 'build',
         testSrc: 'test/**/*.spec.ts',
         loader: 'development-tool-node'
     }

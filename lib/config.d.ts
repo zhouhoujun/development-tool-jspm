@@ -1,4 +1,4 @@
-import { Src, Pipe, IMap, IAsserts, ITaskContext } from 'development-core';
+import { Src, Pipe, IMap, IAsserts, ITaskContext, OutputPipe } from 'development-core';
 /**
  * jspm mate loader config
  *
@@ -44,6 +44,13 @@ export interface IBundlesConfig extends IAsserts {
      */
     packageFile?: string;
     /**
+     * jspm packages folder.
+     *
+     * @type {string}
+     * @memberOf IBundlesConfig
+     */
+    jspmPackages?: string;
+    /**
      * bundle main file.
      *
      * @type {string}
@@ -58,6 +65,13 @@ export interface IBundlesConfig extends IAsserts {
      */
     mainfilePipes?: Pipe[];
     /**
+     * mainfile output pipe.
+     *
+     * @type {OutputPipe[]}
+     * @memberOf IBundlesConfig
+     */
+    mainfileOutput?: OutputPipe[];
+    /**
      * mainfile includes libs.
      * default includes
      *   ./system-polyfills.src.js,
@@ -67,6 +81,13 @@ export interface IBundlesConfig extends IAsserts {
      * @memberOf IBundlesConfig
      */
     includes?: string[];
+    /**
+     * include jspm package file.
+     *
+     * @type {string[]}
+     * @memberOf IBundlesConfig
+     */
+    includePackageFiles?: string[];
     /**
      * deploy bust.
      *
@@ -80,7 +101,7 @@ export interface IBundlesConfig extends IAsserts {
      * @type {IMap<IJspmMate>}
      * @memberOf BundlesConfig
      */
-    jspmMetas?: IMap<IJspmMate>;
+    jspmMates?: IMap<IJspmMate>;
     /**
      * build Config.
      *
@@ -180,7 +201,7 @@ export interface IBundleGroup {
  */
 export interface IBuilder {
     /**
-     *
+     * bundle all
      *
      * @param {string} name
      * @param {(string | string[])} src

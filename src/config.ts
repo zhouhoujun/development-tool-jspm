@@ -1,4 +1,4 @@
-import { Src, Pipe, IMap, IAsserts, ITaskContext } from 'development-core'
+import { Src, Pipe, IMap, IAsserts, ITaskContext, OutputPipe, ITransform } from 'development-core'
 
 /**
  * jspm mate loader config
@@ -46,6 +46,14 @@ export interface IBundlesConfig extends IAsserts {
      * @memberOf IBundlesConfig
      */
     packageFile?: string;
+
+    /**
+     * jspm packages folder.
+     * 
+     * @type {string}
+     * @memberOf IBundlesConfig
+     */
+    jspmPackages?: string;
     /**
      * bundle main file.
      * 
@@ -60,6 +68,14 @@ export interface IBundlesConfig extends IAsserts {
      * @memberOf IBundlesConfig
      */
     mainfilePipes?: Pipe[];
+
+    /**
+     * mainfile output pipe.
+     * 
+     * @type {OutputPipe[]}
+     * @memberOf IBundlesConfig
+     */
+    mainfileOutput?: OutputPipe[];
     /**
      * mainfile includes libs. 
      * default includes 
@@ -70,6 +86,14 @@ export interface IBundlesConfig extends IAsserts {
      * @memberOf IBundlesConfig
      */
     includes?: string[];
+
+    /**
+     * include jspm package file.
+     * 
+     * @type {string[]}
+     * @memberOf IBundlesConfig
+     */
+    includePackageFiles?: string[];
     /**
      * deploy bust.
      * 
@@ -83,7 +107,7 @@ export interface IBundlesConfig extends IAsserts {
      * @type {IMap<IJspmMate>}
      * @memberOf BundlesConfig
      */
-    jspmMetas?: IMap<IJspmMate>;
+    jspmMates?: IMap<IJspmMate>;
     /**
      * build Config.
      * 
@@ -104,7 +128,84 @@ export interface IBundlesConfig extends IAsserts {
      * @type {(IMap<IBundleGroup> | ((config: IJspmTaskConfig) => IMap<IBundleGroup>)}
      * @memberOf BundlesConfig
      */
-    bundles?: IMap<IBundleGroup> | ((config: IJspmTaskConfig) => IMap<IBundleGroup>)
+    bundles?: IMap<IBundleGroup> | ((config: IJspmTaskContext) => IMap<IBundleGroup>)
+}
+
+/**
+ * bundle map.
+ * 
+ * @export
+ * @interface IBundleMap
+ */
+export interface IBundleMap {
+    /**
+     * bundle path.
+     * 
+     * @type {string}
+     * @memberOf IBundleMap
+     */
+    path: string;
+    /**
+     * bundle modules.
+     * 
+     * @type {Src}
+     * @memberOf IBundleMap
+     */
+    modules: Src;
+
+    /**
+     * sfx builder or not.
+     * 
+     * @type {boolean}
+     * @memberOf IBundleMap
+     */
+    sfx?: boolean;
+    /**
+     * bundle name.
+     * 
+     * @type {string}
+     * @memberOf IBundleMap
+     */
+    bundleName?: string;
+
+    /**
+     * bundle file name.
+     * 
+     * @type {string}
+     * @memberOf IBundleMap
+     */
+    filename?: string;
+
+    /**
+     * bundle dest.
+     * 
+     * @type {string}
+     * @memberOf IBundleMap
+     */
+    bundleDest?: string;
+}
+
+/**
+ * bundle transform.
+ * 
+ * @export
+ * @interface IBundleTransform
+ */
+export interface IBundleTransform {
+    /**
+     * bundle info.
+     * 
+     * @type {IBundleMap}
+     * @memberOf IBundleTransform
+     */
+    bundle: IBundleMap;
+    /**
+     * bundle stream.
+     * 
+     * @type {ITransform}
+     * @memberOf IBundleTransform
+     */
+    stream: ITransform;
 }
 
 /**
@@ -114,7 +215,7 @@ export interface IBundlesConfig extends IAsserts {
  * @interface IJspmTaskOption
  * @extends {ITaskOption}
  */
-export interface IJspmTaskConfig extends ITaskContext {
+export interface IJspmTaskContext extends ITaskContext {
     option: IBundlesConfig
 }
 
@@ -188,7 +289,7 @@ export interface IBundleGroup {
  */
 export interface IBuilder {
     /**
-     * 
+     * bundle all
      * 
      * @param {string} name
      * @param {(string | string[])} src

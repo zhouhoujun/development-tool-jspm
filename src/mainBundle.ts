@@ -14,7 +14,7 @@ export class MainBundle extends PipeTask {
         super(info);
     }
 
-    sourceStream(ctx: ITaskContext, option: IAssertDist, gulp: Gulp): TransformSource | Promise<TransformSource> {
+    source(ctx: ITaskContext, option: IAssertDist, gulp: Gulp): TransformSource | Promise<TransformSource> {
         let cfgopt = <IBundlesConfig>ctx.option;
         return gulp.src(cfgopt.index)
     }
