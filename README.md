@@ -22,41 +22,75 @@ npm install development-tool-jspm
 ```ts
 import  { Development } from 'development-tool';
 
+//bundle all from src
+ ['app/home/**/*.js']
 Development.create(gulp, __dirname, [
     {
         src:'src',
         dist:'dist',
         loader:'development-tool-web',
         tasks:[
-            {
-                [src:'dist/**/*.js',]
-                dist: 'dist/bundles',
+            <IBundlesConfig>{
                 loader: 'development-tool-jspm',
-                jspmConfig:'./jspm.conf.js',
-                bundles:{
-                    libs:{
-                        combine:true,
-                        toES5:true,
-                        exclude: [...],
-                        items: string[] | (config)=> string[]
+                baseURL: '',
+                mainfile: 'bundle.js',
+                bust: 'v0.1.0',
+                // jspmConfig: 'development/jspm-config/config.js',
+                src:'app/home/**/*.js',
+                dist: 'bundles',
+                //bundle output file to work with
+                pipes: [
+                    (ctx) => ngAnnotate(),
+                    (ctx) => uglify()
+                ]
+            }
+        ]
+    }
+]);
+
+//bundle group.
+Development.create(gulp, __dirname, [
+    {
+        src:'src',
+        dist:'dist',
+        loader:'development-tool-web',
+        tasks:[
+            <IBundlesConfig>{
+                loader: 'development-tool-jspm',
+                baseURL: '',
+                mainfile: 'bundle.js',
+                bust: 'v0.1.0',
+                // jspmConfig: 'development/jspm-config/config.js',
+                src:'',
+                dist: 'gbundles',
+                //bundle output file to work with
+                pipes: [
+                    (ctx) => ngAnnotate(),
+                    (ctx) => uglify()
+                ],
+                ////bundle output main file to work with
+                mainfilePipes: [
+                    (ctx) => ngAnnotate(),
+                    (ctx) => uglify()
+                ],
+                bundles: {
+                    iapi: <IBundleGroup>{
+                        combine: true,
+                        bundle: true,
+                        items: ['app/iapi/app', 'app/iapi/interface/index', 'app/iapi/interface/apiModule/app'],
+                        exclude: []
                     },
-                    module1:{
-                        combine:true,
-                        toES5:true,
-                        exclude: [...],
-                        items: string[] | (config)=> string[]
-                    }
-                    app:{
-                        combine:true,
-                        toES5:true,
-                        exclude: ['libs', 'module1'],
-                        items: ['app/app']
+                    app: <IBundleGroup>{
+                        combine: true,
+                        bundle: true,
+                        items: ['app/login/login', 'app/signup/signup', 'app/home/app', 'app/home/overview/overview'],
+                        exclude: ['iapi']
                     }
                 }
             }
         ]
     }
-])
+]);
 
 ```
 
