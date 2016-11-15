@@ -77,7 +77,7 @@ Development.create(gulp, __dirname, [
                     iapi: <IBundleGroup>{
                         combine: true,
                         bundle: true,
-                        items: ['app/iapi/app', 'app/iapi/interface/index', 'app/iapi/interface/apiModule/app'],
+                        items: ['app/moduleA/app', 'app/moduleA/xxx/index', 'app/moduleA/xxx/xxx/app'],
                         exclude: []
                     },
                     app: <IBundleGroup>{
