@@ -21,6 +21,7 @@ npm install development-tool-jspm
 
 ```ts
 import  { Development } from 'development-tool';
+import { IBundleGroup, IBundlesConfig } from 'development-tool-jspm';
 
 //bundle all from src
  ['app/home/**/*.js']
