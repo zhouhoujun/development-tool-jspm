@@ -91,7 +91,7 @@ export class JspmBundle extends PipeTask {
                         .then(files => {
                             files = this.getRelativeSrc(files, <IJspmTaskContext>ctx);
                             console.log('bundle files:', chalk.cyan(<any>files));
-                            return this.createBundler(<IJspmTaskContext>ctx, builder, 'bundle', files.join(' + '), option.mainfile, option.builder)
+                            return this.createBundler(<IJspmTaskContext>ctx, builder, 'bundle', files.join(' + '), ctx.toRootPath(option.mainfile), option.builder)
                                 .then(trans => this.translate(trans));
                         });
                 });

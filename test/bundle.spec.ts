@@ -7,7 +7,7 @@ import { IBundlesConfig, JspmBundle, IBundleGroup } from '../src';
 import * as path from 'path';
 
 const ngAnnotate = require('gulp-ng-annotate');
-const sourcemaps = require('gulp-sourcemaps');
+// const sourcemaps = require('gulp-sourcemaps');
 const uglify = require('gulp-uglify');
 
 const del = require('del');
@@ -52,7 +52,6 @@ describe('Jspm bundle task', function () {
 
 
     it('jspm bundle group', async () => {
-
         let ctx = bindingConfig({
             env: { root: root, release: true },
             option: <IBundlesConfig>{
