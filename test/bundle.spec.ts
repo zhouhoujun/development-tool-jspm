@@ -1,5 +1,6 @@
-import * as mocha from 'mocha';
-import { expect } from 'chai';
+// import * as mocha from 'mocha';
+import 'mocha';
+import { expect, assert } from 'chai';
 import { ITask, bindingConfig, runTaskSequence } from 'development-core';
 import * as fs from 'fs';
 import * as gulp from 'gulp';
@@ -23,8 +24,8 @@ describe('Jspm bundle task', function () {
         await del(path.join(root, '../gbundles'));
     })
 
-    it('jspm bundle all', async () => {
 
+    it('jspm bundle all', async () => {
         let ctx = bindingConfig({
             env: { root: root, release: true },
             option: <IBundlesConfig>{
@@ -48,7 +49,7 @@ describe('Jspm bundle task', function () {
 
         expect(fs.existsSync(path.join(root, '../bundles', 'bundle.js'))).eq(true);
 
-    }, 60000 * 10);
+    }); // , 60000 * 10);
 
 
     it('jspm bundle group', async () => {
@@ -98,6 +99,6 @@ describe('Jspm bundle task', function () {
 
         expect(fs.existsSync(path.join(root, '../bundles', 'bundle.js'))).eq(true);
 
-    }, 60000 * 10);
+    }); // , 60000 * 10);
 
 })

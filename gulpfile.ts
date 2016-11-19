@@ -1,6 +1,5 @@
 import * as gulp from 'gulp';
-import { ITaskOption } from 'development-core';
-import { Development } from 'development-tool';
+import { ITaskOption, Development } from 'development-tool';
 // import 'development-tool-node';
 
 Development.create(gulp, __dirname, {

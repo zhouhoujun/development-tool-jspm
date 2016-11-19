@@ -6,12 +6,14 @@ import * as htmlreplace from 'gulp-html-replace';
 import { IBundlesConfig } from './config';
 
 @task({
+    order: total => total + 1,
     oper: Operation.release | Operation.deploy
 })
-export class MainBundle extends PipeTask {
+export class IndexBundle extends PipeTask {
 
     constructor(info?: ITaskInfo) {
         super(info);
+        this.name = 'mainindex';
     }
 
     source(ctx: ITaskContext, option: IAssertDist, gulp: Gulp): TransformSource | Promise<TransformSource> {
