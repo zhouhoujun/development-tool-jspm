@@ -6,7 +6,7 @@ import * as htmlreplace from 'gulp-html-replace';
 import { IBundlesConfig } from './config';
 
 @task({
-    order: total => total + 1,
+    order: 1,
     oper: Operation.release | Operation.deploy
 })
 export class IndexBundle extends PipeTask {

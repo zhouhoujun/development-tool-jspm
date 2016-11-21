@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { task, RunWay, IAssertDist, ITaskContext, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask, bindingConfig } from 'development-core';
+import { IMap, task, RunWay, IAssertDist, ITaskContext, Src, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, Operation, PipeTask, bindingConfig } from 'development-core';
 import { Gulp } from 'gulp';
 import * as path from 'path';
 import { IJspmTaskContext, IBundlesConfig, IBundleGroup, IBuidlerConfig, IBundleMap, IBundleTransform } from './config';
@@ -22,7 +22,7 @@ export class JspmBundle extends PipeTask {
 
     name = 'jspm-bundle';
     runWay = RunWay.sequence;
-    private bundles: IBundleMap[];
+    private bundleMaps: IBundleMap[];
     constructor(info?: ITaskInfo) {
         super(info);
     }
@@ -61,13 +61,63 @@ export class JspmBundle extends PipeTask {
         }
     }
 
+    private bundleConfig: IMap<IBundleGroup>;
+    initBundles(ctx: IJspmTaskContext) {
+        let bundles: IMap<IBundleGroup> = null;
+        let opt = ctx.option;
+        if (_.isFunction(opt.bundles)) {
+            // opt['_bundlesFunc'] = opt.bundles;
+            bundles = opt.bundles(ctx);
+        }
+        if (opt.bundleDeps) {
+            let pkg = this.getPackage(opt);
+            if (!pkg) {
+                console.log(chalk.red('can not found package.json file.'));
+                process.exit(0);
+            }
+            if (!pkg.jspm) {
+                console.log(chalk.red('jspm not init in package.json file.'));
+                process.exit(0);
+            }
+            let deps = _.keys(pkg.jspm.dependencies);
+            if (opt.depsExclude) {
+                let exclude = _.isFunction(opt.depsExclude) ? opt.depsExclude(ctx, deps) : opt.depsExclude;
+                deps = _.filter(deps, d => exclude.indexOf(d) < 0);
+            }
+
+            let bundleDeps;
+            if (_.isFunction(opt.bundleDeps)) {
+                // opt['_bundleDepsFunc'] = opt.bundleDeps;
+                bundleDeps = opt.bundleDeps(ctx, deps);
+            } else if (_.isBoolean(opt.bundleDeps)) {
+                opt.bundleDeps = {
+                    deplibs: {
+                        combine: true,
+                        items: deps
+                    }
+                };
+            } else {
+                bundleDeps = opt.bundleDeps;
+            }
+
+            let cores = _.keys(bundleDeps);
+            _.each(_.values(bundles), (b: IBundleGroup) => {
+                b.exclude = b.exclude || [];
+                b.exclude = cores.concat(b.exclude);
+            });
+        }
+        this.bundleConfig = bundles;
+
+    }
+
     source(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource> {
         let option = <IBundlesConfig>ctx.option;
         if (option.bundles) {
-            return Promise.all(_.map(this.getbundles(ctx), name => {
+            this.initBundles(<IJspmTaskContext>ctx);
+            return Promise.all(_.map(this.getBundles(ctx), name => {
                 return this.loadBuilder(ctx)
                     .then(builder => {
-                        let bundle: IBundleGroup = option.bundles[name];
+                        let bundle: IBundleGroup = this.bundleConfig[name];
                         bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
                         if (option.builder.config) {
                             builder.config(bundle.builder.config);
@@ -182,14 +232,14 @@ export class JspmBundle extends PipeTask {
 
 
     execute(context: ITaskContext, gulp: Gulp) {
-        this.bundles = [];
+        this.bundleMaps = [];
         let ctx = <IJspmTaskContext>context;
         return super.execute(ctx, gulp)
             .then(() => {
                 let option = <IBundlesConfig>ctx.option;
                 if (option.bundles) {
-                    return this.calcChecksums(option, this.bundles).then((checksums) => {
-                        return this.updateBundleManifest(ctx, this.bundles, checksums);
+                    return this.calcChecksums(option, this.bundleMaps).then((checksums) => {
+                        return this.updateBundleManifest(ctx, this.bundleMaps, checksums);
                     });
                 } else {
                     return null;
@@ -220,7 +270,7 @@ export class JspmBundle extends PipeTask {
                     path: bundle.path,
                     modules: bundle.modules
                 };
-                this.bundles.push(bundlemap);
+                this.bundleMaps.push(bundlemap);
                 if (bundle.sfx) {
                     console.log(`Built sfx package: ${chalk.cyan(bundle.bundleName)} -> ${chalk.cyan(bundle.filename)}\n   dest: ${chalk.cyan(bundle.bundleDest)}`);
                 } else {
@@ -230,15 +280,15 @@ export class JspmBundle extends PipeTask {
             });
     }
 
-    getbundles(ctx: ITaskContext) {
-        let option = <IBundlesConfig>ctx.option;
+    getBundles(ctx: ITaskContext) {
+
         let groups = [];
         if (ctx.env.gb) {
             groups = _.uniq(_.isArray(ctx.env.gb) ? ctx.env.gb : (ctx.env.gb || '').split(','));
         }
 
         if (groups.length < 1) {
-            groups = _.keys(option.bundles);
+            groups = _.keys(this.bundleConfig);
         } else {
             groups = _.filter(groups, f => f && groups[f]);
         }
@@ -248,13 +298,11 @@ export class JspmBundle extends PipeTask {
 
     protected groupBundle(config: IJspmTaskContext, builder, name: string, bundleGp: IBundleGroup, gulp: Gulp): Promise<IBundleTransform | IBundleTransform[]> {
 
-        let option: IBundlesConfig = config.option;
-
         let bundleStr = '';
         let bundleDest = '';
 
         let bundleItems: string[] = [];
-        let minusStr = this.exclusionString(bundleGp.exclude, option.bundles);
+        let minusStr = this.exclusionString(bundleGp.exclude, this.bundleConfig);
 
         if (bundleGp.items) {
             bundleItems = _.isArray(bundleItems) ? <string[]>bundleGp.items : _.keys(bundleGp.items);
@@ -309,7 +357,7 @@ export class JspmBundle extends PipeTask {
                 mkdirp.sync(path.dirname(bundleDest));
                 var stream: ITransform = source(filename);
                 stream.write(output.source);
-                process.nextTick(function() {
+                process.nextTick(function () {
                     stream.end();
                 });
 
