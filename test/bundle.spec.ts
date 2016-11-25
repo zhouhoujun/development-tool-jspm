@@ -24,12 +24,17 @@ describe('Jspm bundle task', function () {
         await del(path.join(root, '../gbundles'));
     })
 
+    after(async () => {
+        await del(path.join(root, '../bundles'));
+        await del(path.join(root, '../gbundles'));
+    })
+
 
     it('jspm bundle all', async () => {
         let ctx = bindingConfig({
             env: { root: root, release: true },
             option: <IBundlesConfig>{
-                baseURL: '',
+                bundleBaseURL: './',
                 mainfile: 'bundle.js',
                 // jspmConfig: 'development/jspm-config/config.js',
                 src: ['app/home/**/*.js'],
@@ -56,12 +61,13 @@ describe('Jspm bundle task', function () {
         let ctx = bindingConfig({
             env: { root: root, release: true },
             option: <IBundlesConfig>{
-                baseURL: '',
+                bundleBaseURL: '.',
                 mainfile: 'bundle.js',
                 bust: 'v0.1.0',
                 // jspmConfig: 'development/jspm-config/config.js',
                 src: ['app/home/**/*.js'],
                 dist: '../gbundles',
+                // bundleFolder: '',
                 pipes: [
                     (ctx) => ngAnnotate(),
                     (ctx) => uglify()
@@ -97,7 +103,9 @@ describe('Jspm bundle task', function () {
 
         await runTaskSequence(gulp, tasks, ctx);
 
-        expect(fs.existsSync(path.join(root, '../bundles', 'bundle.js'))).eq(true);
+        expect(fs.existsSync(path.join(root, '../gbundles', 'iapi.js'))).eq(true);
+        expect(fs.existsSync(path.join(root, '../gbundles', 'app.js'))).eq(true);
+        expect(fs.existsSync(path.join(root, '../gbundles', 'bundle.js'))).eq(true);
 
     }); // , 60000 * 10);
 

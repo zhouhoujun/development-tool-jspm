@@ -4,9 +4,9 @@ import { Gulp } from 'gulp';
 import * as path from 'path';
 import { IJspmTaskContext, IBundlesConfig, IBundleGroup, IBuidlerConfig, IBundleMap, IBundleTransform } from './config';
 
-import { readFileSync, readFile, existsSync, writeFileSync, readdirSync } from 'fs';
+import { readFileSync, readFile, existsSync, lstatSync, writeFileSync, readdirSync } from 'fs';
 import * as chalk from 'chalk';
-const globby = require('globby');
+// const globby = require('globby');
 const jspm = require('jspm');
 const source = require('vinyl-source-stream');
 const vinylBuffer = require('vinyl-buffer');
@@ -33,7 +33,7 @@ export class JspmBundle extends PipeTask {
 
     protected loadBuilder(ctx: ITaskContext): Promise<any> {
         let option = <IBundlesConfig>ctx.option;
-        jspm.setPackagePath(path.dirname(option.packageFile));
+        jspm.setPackagePath(path.dirname(ctx.toStr(option.packageFile)));
         let jsbuilder = new jspm.Builder({ separateCSS: option.builder.separateCSS });
 
         return Promise.resolve(jsbuilder)
@@ -62,72 +62,91 @@ export class JspmBundle extends PipeTask {
     }
 
     private bundleConfig: IMap<IBundleGroup>;
-    initBundles(ctx: IJspmTaskContext) {
-        let bundles: IMap<IBundleGroup> = null;
+    initBundles(ctx: IJspmTaskContext): Promise<IMap<IBundleGroup>> {
         let opt = ctx.option;
-        if (_.isFunction(opt.bundles)) {
-            // opt['_bundlesFunc'] = opt.bundles;
-            bundles = opt.bundles(ctx);
-        }
+        let pr = Promise.resolve<IMap<IBundleGroup>>(null)
+            .then(() => {
+                if (_.isFunction(opt.bundles)) {
+                    // opt['_bundlesFunc'] = opt.bundles;
+                    return opt.bundles(ctx);
+                } else {
+                    return opt.bundles;
+                }
+            });
+
         if (opt.bundleDeps) {
-            let pkg = this.getPackage(opt);
-            if (!pkg) {
-                console.log(chalk.red('can not found package.json file.'));
-                process.exit(0);
-            }
-            if (!pkg.jspm) {
-                console.log(chalk.red('jspm not init in package.json file.'));
-                process.exit(0);
-            }
-            let deps = _.keys(pkg.jspm.dependencies);
-            if (opt.depsExclude) {
-                let exclude = _.isFunction(opt.depsExclude) ? opt.depsExclude(ctx, deps) : opt.depsExclude;
-                deps = _.filter(deps, d => exclude.indexOf(d) < 0);
-            }
+            pr = pr.then(bundles => {
+                let pkg = this.getPackage(opt);
+                if (!pkg) {
+                    console.log(chalk.red('can not found package.json file.'));
+                    process.exit(0);
+                }
+                if (!pkg.jspm) {
+                    console.log(chalk.red('jspm not init in package.json file.'));
+                    process.exit(0);
+                }
+                let deps = _.keys(pkg.jspm.dependencies);
+                if (opt.depsExclude) {
+                    let exclude = _.isFunction(opt.depsExclude) ? opt.depsExclude(ctx, deps) : opt.depsExclude;
+                    deps = _.filter(deps, d => exclude.indexOf(d) < 0);
+                }
 
-            let bundleDeps;
-            if (_.isFunction(opt.bundleDeps)) {
-                // opt['_bundleDepsFunc'] = opt.bundleDeps;
-                bundleDeps = opt.bundleDeps(ctx, deps);
-            } else if (_.isBoolean(opt.bundleDeps)) {
-                opt.bundleDeps = {
-                    deplibs: {
-                        combine: true,
-                        items: deps
-                    }
-                };
-            } else {
-                bundleDeps = opt.bundleDeps;
-            }
+                return Promise.resolve()
+                    .then(() => {
+                        if (_.isFunction(opt.bundleDeps)) {
+                            // opt['_bundleDepsFunc'] = opt.bundleDeps;
+                            return opt.bundleDeps(ctx, deps);
+                        } else if (_.isBoolean(opt.bundleDeps)) {
+                            return {
+                                deplibs: {
+                                    combine: true,
+                                    items: deps
+                                }
+                            };
+                        } else {
+                            return opt.bundleDeps;
+                        }
+                    })
+                    .then(bundleDeps => {
 
-            let cores = _.keys(bundleDeps);
-            _.each(_.values(bundles), (b: IBundleGroup) => {
-                b.exclude = b.exclude || [];
-                b.exclude = cores.concat(b.exclude);
+                        let cores = _.keys(bundleDeps);
+                        _.each(_.values(bundles), (b: IBundleGroup) => {
+                            b.exclude = b.exclude || [];
+                            b.exclude = cores.concat(b.exclude);
+                        });
+
+                        return bundles;
+                    });
             });
         }
-        this.bundleConfig = bundles;
+
+        return pr.then(bundles => {
+            this.bundleConfig = bundles;
+            return bundles;
+        });
 
     }
 
     source(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource> {
         let option = <IBundlesConfig>ctx.option;
         if (option.bundles) {
-            this.initBundles(<IJspmTaskContext>ctx);
-            return Promise.all(_.map(this.getBundles(ctx), name => {
-                return this.loadBuilder(ctx)
-                    .then(builder => {
-                        let bundle: IBundleGroup = this.bundleConfig[name];
-                        bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
-                        if (option.builder.config) {
-                            builder.config(bundle.builder.config);
-                        }
-                        return this.groupBundle(<IJspmTaskContext>ctx, builder, name, bundle, gulp)
-                            .then(trans => this.translate(trans));
-                    });
-            })).then(groups => {
-                return _.flatten(groups);
-            });
+            return this.initBundles(<IJspmTaskContext>ctx)
+                .then(() => {
+                    return Promise.all(_.map(this.getBundles(ctx), name => {
+                        return this.loadBuilder(ctx)
+                            .then(builder => {
+                                let bundle: IBundleGroup = this.bundleConfig[name];
+                                bundle.builder = <IBuidlerConfig>_.defaults(bundle.builder, option.builder);
+                                if (option.builder.config) {
+                                    builder.config(bundle.builder.config);
+                                }
+                                return this.groupBundle(<IJspmTaskContext>ctx, builder, name, bundle, gulp)
+                                    .then(trans => this.translate(trans));
+                            });
+                    }))
+                }).then(groups => {
+                    return _.flatten(groups);
+                });
         } else {
             return this.loadBuilder(ctx)
                 .then(builder => {
@@ -137,20 +156,21 @@ export class JspmBundle extends PipeTask {
                         builder.config(option.builder.config)
                     }
 
-                    return Promise.resolve<string[]>(globby(src))
+                    return ctx.fileFilter(src)
                         .then(files => {
-                            files = this.getRelativeSrc(files, <IJspmTaskContext>ctx);
+                            files = this.getRelativeSrc(ctx, files, <IJspmTaskContext>ctx);
                             console.log('bundle files:', chalk.cyan(<any>files));
-                            return this.createBundler(<IJspmTaskContext>ctx, builder, 'bundle', files.join(' + '), ctx.toRootPath(option.mainfile), option.builder)
+                            let mainfile = this.getBundleManifestPath(<IJspmTaskContext>ctx);
+                            return this.createBundler(<IJspmTaskContext>ctx, builder, 'bundle', files.join(' + '), mainfile, option.builder)
                                 .then(trans => this.translate(trans));
                         });
                 });
         }
     }
 
-    private getRelativeSrc(src: Src, config: IJspmTaskContext, toModule = false): string[] {
+    private getRelativeSrc(ctx: ITaskContext, src: Src, config: IJspmTaskContext, toModule = false): string[] {
         // console.log(option.baseURL);
-        let baseURL = config.option.baseURL
+        let baseURL = <string>config.option.bundleBaseURL;
         if (_.isArray(src)) {
             return _.map(src, s => {
                 let filename = path.relative(baseURL, s).replace(/\\/g, '/').replace(/^\//g, '');
@@ -170,8 +190,10 @@ export class JspmBundle extends PipeTask {
     }
 
     private initOption(ctx: ITaskContext) {
+        let self = this;
         let option = <IBundlesConfig>_.extend(<IBundlesConfig>{
             baseURL: '',
+            bundleBaseURL: '.',
             mainfile: 'bundle.js',
             jspmConfig: '',
             packageFile: 'package.json',
@@ -181,6 +203,28 @@ export class JspmBundle extends PipeTask {
             relationToRoot: '',
             bust: '',
             bundles: null,
+            bundlePaths(ctx) {
+                let paths: any = {};
+                let bundleDest = ctx.getDist();
+                let rootpath = <string>ctx.option.bundleBaseURL;
+                let dir = readdirSync(rootpath);
+                _.each(dir, (d: string) => {
+
+                    let sf = path.join(rootpath, d);
+                    if (sf === bundleDest) {
+                        return;
+                    }
+                    let f = lstatSync(sf);
+                    if (f.isDirectory()) {
+                        let p = d + '/*';
+                        paths[p] = path.relative(ctx.env.root, path.join(rootpath, p)).replace(/\\/g, '/').replace(/^\//g, '');
+                    }
+                });
+                let jpk = <string>option.jspmPackages;
+                let jp = path.basename(jpk) + '/*';
+                paths[jp] =  path.relative(ctx.env.root, path.join(jpk, jp)).replace(/\\/g, '/').replace(/^\//g, '')
+                return paths;
+            },
             includePackageFiles: [
                 'system-polyfills.src.js',
                 'system.src.js'
@@ -206,12 +250,15 @@ export class JspmBundle extends PipeTask {
             }
         }, <IBundlesConfig>ctx.option);
 
-        option.baseURL = ctx.toRootPath(option.baseURL);
-        if (option.jspmConfig) {
-            option.jspmConfig = ctx.toRootPath(option.jspmConfig);
-        }
-        option.packageFile = ctx.toRootPath(option.packageFile);
+        ctx.option = option;
 
+        option.baseURL = ctx.toRootPath(ctx.toStr(option.baseURL));
+        option.bundleBaseURL = ctx.toRootPath(ctx.toStr(option.bundleBaseURL));
+        if (option.jspmConfig) {
+            option.jspmConfig = ctx.toRootPath(ctx.toStr(option.jspmConfig));
+        }
+        option.packageFile = ctx.toRootPath(ctx.toStr(option.packageFile));
+        option.mainfile = ctx.toStr(option.mainfile);
         let pkg = this.getPackage(option);
         if (!option.jspmPackages) {
             if (pkg.jspm.directories && pkg.jspm.directories.packages) {
@@ -220,12 +267,17 @@ export class JspmBundle extends PipeTask {
                 option.jspmPackages = 'jspm_packages';
             }
         }
-        option.jspmPackages = ctx.toRootPath(option.jspmPackages);
+        option.jspmPackages = ctx.toRootPath(ctx.toStr(option.jspmPackages));
 
         if (!readdirSync(option.jspmPackages)) {
             console.log(chalk.red('jspm project config error!'));
             process.exit(0);
         }
+
+        option.builder.config = _.extend(option.builder.config || {}, {
+            paths: _.isFunction(option.bundlePaths) ? option.bundlePaths(<IJspmTaskContext>ctx) : (option.bundlePaths || {}),
+            rootURL: option.bundleBaseURL
+        });
 
         return option;
     }
@@ -361,15 +413,6 @@ export class JspmBundle extends PipeTask {
                     stream.end();
                 });
 
-
-                // transform['bundle'] = {
-                //     sfx: sfx,
-                //     path: shortPath,
-                //     bundleName: bundleName,
-                //     filename: filename,
-                //     bundleDest: bundleDest,
-                //     modules: output.modules
-                // };
                 return {
                     stream: stream.pipe(vinylBuffer()),
                     bundle: {
@@ -387,10 +430,10 @@ export class JspmBundle extends PipeTask {
 
     private packages = {};
     public getPackage(option: IBundlesConfig): any {
-        if (!this.packages[option.packageFile]) {
-            this.packages[option.packageFile] = require(option.packageFile);
+        if (!this.packages[<string>option.packageFile]) {
+            this.packages[<string>option.packageFile] = require(<string>option.packageFile);
         }
-        return this.packages[option.packageFile]
+        return this.packages[<string>option.packageFile]
     }
 
     private calcChecksums(option: IBundlesConfig, bundles: any[]): Promise<any> {
@@ -404,7 +447,7 @@ export class JspmBundle extends PipeTask {
             }
 
             return new Promise((resolve, reject) => {
-                let filepath = path.join(option.baseURL || '.', bundle.path);
+                let filepath = path.join(<string>option.bundleBaseURL || '.', bundle.path);
                 let filename = path.parse(bundle.path).base;
                 chksum.file(filepath, (err, sum) => {
                     if (err) {
@@ -456,7 +499,7 @@ export class JspmBundle extends PipeTask {
 
         let output = `
 System.config({
-    baseURL: '${ path.relative(option.baseURL, ctx.env.root) || '.'}',
+    baseURL: '${ path.relative(<string>option.baseURL, ctx.env.root) || '.'}',
     defaultJSExtensions: true
 });
 System.bundled = true;
@@ -468,7 +511,7 @@ ${this.manifestSplit}
 
         if (manifest) {
             // try {
-            template = option.systemConfigTempl;
+            template = ctx.toStr(option.systemConfigTempl);
 
             if (!template) {
                 template = (option.bust) ? `
@@ -571,8 +614,8 @@ ${this.manifestSplit}
         }))
             .then(data => {
                 data.push(output);
-                let mainfile = option.mainfile; // path.relative(this.getBundleManifestPath(ctx), ctx.getDist(this.getInfo()));
-                // console.log('mainfile:', mainfile);
+                let mainfile = ctx.toStr(option.mainfile); // path.relative(this.getBundleManifestPath(ctx), ctx.getDist(this.getInfo()));
+                console.log('mainfile:', mainfile);
                 mkdirp.sync(path.dirname(mainfile));
                 var stream = <NodeJS.ReadWriteStream>source(mainfile);
                 stream.write(data.join('\n'));
@@ -580,13 +623,13 @@ ${this.manifestSplit}
                     stream.end();
                 });
 
-                return super.working(stream.pipe(vinylBuffer()), ctx, option, gulp, option.mainfilePipes, option.mainfileOutput);
+                return super.working(stream.pipe(vinylBuffer()), ctx, option, gulp, option.mainfilePipes || [], option.mainfileOutput);
             });
 
     }
 
     private getBundleManifestPath(ctx: IJspmTaskContext): string {
-        return this.getBundleDest(ctx, ctx.option.mainfile);
+        return this.getBundleDest(ctx, <string>ctx.option.mainfile);
     }
     private getBundleManifest(ctx: IJspmTaskContext): any {
         let data: any = {};
@@ -612,18 +655,18 @@ ${this.manifestSplit}
         return data;
     }
 
-    private getBundleShortPath(config: IJspmTaskContext, bundleName: string, bundleGp?: IBundleGroup) {
-        var fullPath = bundleGp ? this.getBundleDest(config, bundleName, bundleGp)
-            : path.join(config.getDist(), bundleName);
+    private getBundleShortPath(ctx: IJspmTaskContext, bundleName: string, bundleGp?: IBundleGroup) {
+        var fullPath = bundleGp ? this.getBundleDest(ctx, bundleName, bundleGp)
+            : path.join(ctx.getDist(), bundleName);
 
-        let spath: string = path.relative(config.option.baseURL, fullPath);
+        let spath: string = path.relative(<string>ctx.option.bundleBaseURL, fullPath);
         spath = spath.replace(/\\/g, '/').replace(/^\//g, '');
         return spath;
     }
 
-    private getBundleDest(config: IJspmTaskContext, bundleName: string, bundleGp?: IBundleGroup) {
+    private getBundleDest(ctx: IJspmTaskContext, bundleName: string, bundleGp?: IBundleGroup) {
 
-        let dest = config.getDist();
+        let dest = ctx.getDist();
         if (bundleGp) {
             let min = bundleGp.builder.minify;
             let name = bundleGp.items[bundleName] || bundleName;

@@ -1,4 +1,4 @@
-import { Src, Pipe, IMap, IAsserts, ITaskContext, OutputPipe, ITransform } from 'development-core'
+import { Src, Pipe, IMap, IAsserts, ITaskContext, OutputPipe, ITransform, TaskString } from 'development-core'
 
 /**
  * jspm mate loader config
@@ -30,14 +30,29 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf BundlesConfig
      */
-    baseURL: string;
+    baseURL?: TaskString;
+
+    /**
+     * bundle baseURL. used when bundling.
+     * 
+     * @type {TaskString}
+     * @memberOf IBundlesConfig
+     */
+    bundleBaseURL: TaskString;
+    /**
+     * bundlePaths
+     * 
+     * 
+     * @memberOf IBundlesConfig
+     */
+    bundlePaths?: IMap<string> | ((ctx: IJspmTaskContext) => IMap<string>);
     /**
      * jspm config file full path.
      * 
      * @type {string}
      * @memberOf BundlesConfig
      */
-    jspmConfig?: string;
+    jspmConfig?: TaskString;
 
     /**
      * package.json file path.
@@ -45,7 +60,7 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf IBundlesConfig
      */
-    packageFile?: string;
+    packageFile?: TaskString;
 
     /**
      * jspm packages folder.
@@ -53,14 +68,14 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf IBundlesConfig
      */
-    jspmPackages?: string;
+    jspmPackages?: TaskString;
     /**
      * bundle main file.
      * 
      * @type {string}
      * @memberOf BundlesConfig
      */
-    mainfile: string;
+    mainfile: TaskString;
     /**
      * mainfile pipe works.
      * 
@@ -100,7 +115,7 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf BundlesConfig
      */
-    bust?: string;
+    bust?: TaskString;
     /**
      * the config to bundle jspm loader.
      * 
@@ -121,14 +136,22 @@ export interface IBundlesConfig extends IAsserts {
      * @type {string}
      * @memberOf BundlesConfig
      */
-    systemConfigTempl?: string;
+    systemConfigTempl?: TaskString;
+
+    /**
+     * bundle folder.
+     * 
+     * @type {string}
+     * @memberOf IBundlesConfig
+     */
+    bundleFolder?: TaskString;
     /**
      * bundle group config, if not set will bundle all.
      * 
      * @type {(IMap<IBundleGroup> | ((ctx: IJspmTaskConfig) => IMap<IBundleGroup>)}
      * @memberOf BundlesConfig
      */
-    bundles?: IMap<IBundleGroup> | ((ctx: IJspmTaskContext) => IMap<IBundleGroup>);
+    bundles?: IMap<IBundleGroup> | ((ctx: IJspmTaskContext) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
 
     /**
      * set task to bundle jspm dependencies or not.
@@ -136,7 +159,7 @@ export interface IBundlesConfig extends IAsserts {
      * 
      * @memberOf IBundlesConfig
      */
-    bundleDeps?: boolean | IMap<IBundleGroup> | ((ctx: IJspmTaskContext, dependencies: string[]) => IMap<IBundleGroup>);
+    bundleDeps?: boolean | IMap<IBundleGroup> | ((ctx: IJspmTaskContext, dependencies: string[]) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
 
     /**
      * bundle jspm dependencies exclude items.

@@ -1,5 +1,5 @@
 /// <reference types="gulp" />
-import { RunWay, IAssertDist, ITaskContext, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, PipeTask } from 'development-core';
+import { IMap, RunWay, IAssertDist, ITaskContext, Pipe, OutputPipe, ITaskInfo, TransformSource, ITransform, PipeTask } from 'development-core';
 import { Gulp } from 'gulp';
 import { IJspmTaskContext, IBundlesConfig, IBundleGroup, IBundleTransform } from './config';
 export declare class JspmBundle extends PipeTask {
@@ -11,9 +11,9 @@ export declare class JspmBundle extends PipeTask {
     protected loadBuilder(ctx: ITaskContext): Promise<any>;
     private translate(trans);
     private bundleConfig;
-    initBundles(ctx: IJspmTaskContext): void;
+    initBundles(ctx: IJspmTaskContext): Promise<IMap<IBundleGroup>>;
     source(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource>;
-    private getRelativeSrc(src, config, toModule?);
+    private getRelativeSrc(ctx, src, config, toModule?);
     private toModulePath(filename);
     private initOption(ctx);
     execute(context: ITaskContext, gulp: Gulp): Promise<void>;
@@ -32,6 +32,6 @@ export declare class JspmBundle extends PipeTask {
     private writeBundleManifest(ctx, manifest, gulp);
     private getBundleManifestPath(ctx);
     private getBundleManifest(ctx);
-    private getBundleShortPath(config, bundleName, bundleGp?);
-    private getBundleDest(config, bundleName, bundleGp?);
+    private getBundleShortPath(ctx, bundleName, bundleGp?);
+    private getBundleDest(ctx, bundleName, bundleGp?);
 }
