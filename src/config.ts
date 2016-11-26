@@ -18,12 +18,20 @@ export interface IJspmMate {
  */
 export interface IBundlesConfig extends IAsserts {
     /**
-     * index html etc.
+     * index html etc.  default ['index.*html', 'Index.*html'].
      * 
      * @type {Src}
      * @memberOf IBundlesConfig
      */
     index?: Src;
+
+    /**
+     * index html pipes works.
+     * 
+     * @type {Pipe[]}
+     * @memberOf IBundlesConfig
+     */
+    indexPipes?: Pipe[];
     /**
      * systemjs baseURL, the bundle app path relation to root site.
      * 
@@ -33,19 +41,19 @@ export interface IBundlesConfig extends IAsserts {
     baseURL?: TaskString;
 
     /**
-     * bundle baseURL. used when bundling.
+     * bundle base dir. used when bundling. if empty use parent context dist.
      * 
      * @type {TaskString}
      * @memberOf IBundlesConfig
      */
-    bundleBaseURL: TaskString;
+    bundleBaseDir?: TaskString;
     /**
      * bundlePaths
      * 
      * 
      * @memberOf IBundlesConfig
      */
-    bundlePaths?: IMap<string> | ((ctx: IJspmTaskContext) => IMap<string>);
+    bundlePaths?: IMap<string> | ((ctx: ITaskContext) => IMap<string>);
     /**
      * jspm config file full path.
      * 
@@ -151,7 +159,7 @@ export interface IBundlesConfig extends IAsserts {
      * @type {(IMap<IBundleGroup> | ((ctx: IJspmTaskConfig) => IMap<IBundleGroup>)}
      * @memberOf BundlesConfig
      */
-    bundles?: IMap<IBundleGroup> | ((ctx: IJspmTaskContext) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
+    bundles?: IMap<IBundleGroup> | ((ctx: ITaskContext) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
 
     /**
      * set task to bundle jspm dependencies or not.
@@ -159,7 +167,7 @@ export interface IBundlesConfig extends IAsserts {
      * 
      * @memberOf IBundlesConfig
      */
-    bundleDeps?: boolean | IMap<IBundleGroup> | ((ctx: IJspmTaskContext, dependencies: string[]) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
+    bundleDeps?: boolean | IMap<IBundleGroup> | ((ctx: ITaskContext, dependencies: string[]) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
 
     /**
      * bundle jspm dependencies exclude items.
@@ -167,7 +175,7 @@ export interface IBundlesConfig extends IAsserts {
      * 
      * @memberOf IBundlesConfig
      */
-    depsExclude?: string[] | ((ctx: IJspmTaskContext, dependencies: string[]) => string[]);
+    depsExclude?: string[] | ((ctx: ITaskContext, dependencies: string[]) => string[]);
 
 }
 
@@ -248,16 +256,16 @@ export interface IBundleTransform {
     stream: ITransform;
 }
 
-/**
- * jspm task option.
- * 
- * @export
- * @interface IJspmTaskOption
- * @extends {ITaskOption}
- */
-export interface IJspmTaskContext extends ITaskContext {
-    option: IBundlesConfig
-}
+// /**
+//  * jspm task option.
+//  * 
+//  * @export
+//  * @interface IJspmTaskOption
+//  * @extends {ITaskOption}
+//  */
+// export interface ITaskContext extends ITaskContext {
+//     option: IBundlesConfig
+// }
 
 /**
  * jspm build config.

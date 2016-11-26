@@ -1,8 +1,7 @@
 import * as _ from 'lodash';
-import { task, ITaskContext, IAssertDist, Pipe, ITaskInfo, TransformSource, Operation, PipeTask } from 'development-core';
+import { task, Src, ITaskContext, IAssertDist, Pipe, ITaskInfo, TransformSource, Operation, PipeTask } from 'development-core';
 import { Gulp } from 'gulp';
 import * as htmlreplace from 'gulp-html-replace';
-
 import { IBundlesConfig } from './config';
 
 @task({
@@ -18,17 +17,34 @@ export class IndexBundle extends PipeTask {
 
     source(ctx: ITaskContext, option: IAssertDist, gulp: Gulp): TransformSource | Promise<TransformSource> {
         let cfgopt = <IBundlesConfig>ctx.option;
-        return gulp.src(cfgopt.index)
+        let src: Src;
+        if (cfgopt.index) {
+            src = cfgopt.index;
+        } else {
+            src = 'src/index.html';
+        }
+        return gulp.src(ctx.toRootSrc(src));
+    }
+
+    private packages = {};
+    public getPackage(option: IBundlesConfig): any {
+        if (!this.packages[<string>option.packageFile]) {
+            this.packages[<string>option.packageFile] = require(<string>option.packageFile);
+        }
+        return this.packages[<string>option.packageFile]
     }
 
     pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[] {
+        let option = <IBundlesConfig>ctx.option;
+        let pkg = ctx.getPackage()
         let pipes = <Pipe[]>[
-            (ctx: ITaskContext) => {
-                let option = <IBundlesConfig>ctx.option;
-                return htmlreplace({ 'js': option.mainfile + '?bust=' + option.bust });
-            }
+            (ctx: ITaskContext) => htmlreplace({ 'js': ctx.toStr(option.mainfile) + '?bust=' + (ctx.toStr(option.bust) || pkg.version) })
         ];
 
-        return pipes.concat(super.pipes(ctx, dist, gulp));
+        if (option.indexPipes && option.indexPipes.length > 0) {
+            pipes = pipes.concat(option.indexPipes);
+        }
+
+        return pipes; // concat(super.pipes(ctx, dist, gulp));
     }
 }
