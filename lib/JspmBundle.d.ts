@@ -13,7 +13,6 @@ export declare class JspmBundle extends PipeTask {
     private bundleConfig;
     initBundles(ctx: ITaskContext): Promise<IMap<IBundleGroup>>;
     source(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource>;
-    private toUrl(pathstr, relativePath?);
     private getRelativeSrc(ctx, src, toModule?);
     private toModulePath(filename);
     private initOption(ctx);

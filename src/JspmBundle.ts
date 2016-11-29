@@ -173,20 +173,16 @@ export class JspmBundle extends PipeTask {
         }
     }
 
-    private toUrl(pathstr: string, relativePath?: string) {
-        return (relativePath ? path.relative(pathstr, relativePath) : pathstr).replace(/\\/g, '/').replace(/^\//g, '');
-    }
-
     private getRelativeSrc(ctx: ITaskContext, src: Src, toModule = false): string[] {
         // console.log(option.baseURL);
         let baseURL = <string>(<IBundlesConfig>ctx.option).bundleBaseDir;
         if (_.isArray(src)) {
             return _.map(src, s => {
-                let filename = this.toUrl(baseURL, s);
+                let filename = ctx.toUrl(baseURL, s);
                 return toModule ? this.toModulePath(filename) : filename;
             });
         } else {
-            let fn = this.toUrl(baseURL, src);
+            let fn = ctx.toUrl(baseURL, src);
             return [(toModule ? this.toModulePath(fn) : fn)];
         }
     }
@@ -226,7 +222,7 @@ export class JspmBundle extends PipeTask {
                     let f = lstatSync(sf);
                     if (f.isDirectory()) {
                         let p = d + '/*';
-                        paths[p] = self.toUrl(ctx.env.root, path.join(rootpath, p));
+                        paths[p] = ctx.toUrl(ctx.env.root, path.join(rootpath, p));
                     }
                 });
                 // let jpk = <string>option.jspmPackages;
@@ -676,7 +672,7 @@ ${this.manifestSplit}
         var fullPath = bundleGp ? this.getBundleDest(ctx, bundleName, bundleGp)
             : path.join(ctx.getDist(), bundleName);
 
-        return this.toUrl(<string>(<IBundlesConfig>ctx.option).bundleBaseDir, fullPath)
+        return ctx.toUrl(<string>(<IBundlesConfig>ctx.option).bundleBaseDir, fullPath)
 
     }
 
