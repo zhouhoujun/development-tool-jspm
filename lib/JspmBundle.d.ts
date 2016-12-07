@@ -19,6 +19,8 @@ export declare class JspmBundle extends PipeTask {
     getBuildConfig(ctx: ITaskContext): IBuidlerConfig;
     execute(context: ITaskContext, gulp: Gulp): Promise<void>;
     setup(ctx: ITaskContext, gulp: Gulp): string | void | string[];
+    private restps;
+    getAssertResetPipe(ctx: ITaskContext): Pipe[];
     pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[];
     protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]): Promise<void>;
     getBundles(ctx: ITaskContext): any[];

@@ -329,40 +329,53 @@ export class JspmBundle extends PipeTask {
         return super.setup(ctx, gulp);
     }
 
+    private restps: Pipe[];
+    getAssertResetPipe(ctx: ITaskContext) {
+        if (!this.restps) {
+            let option = <IBundlesConfig>ctx.option;
+            if (_.isUndefined(option.resetAsserts)) {
+                option.resetAsserts = 'assets';
+            }
+            if (option.resetAsserts) {
+                let folders: string[];
+                if (_.isString(option.resetAsserts)) {
+                    let pth = ctx.toDistPath(option.resetAsserts, this.getInfo());
+                    if (existsSync(pth)) {
+                        folders = ctx.getFolders(pth);
+                        folders.push(pth);
+                    } else {
+                        console.log(chalk.yellow('rest css asserts folders:', pth, 'not exists.'))
+                    }
+                } else {
+                    folders = <string[]>ctx.toDistSrc(option.resetAsserts, this.getInfo());
+                }
+
+                folders = folders || [];
+
+                let ps = [];
+                let dist = ctx.getDist(this.getInfo());
+                _.each(folders, f => {
+                    let relp = ctx.toUrl(dist, f);
+                    let fm = path.basename(f);
+                    console.log('reset css url folder name:', chalk.cyan(fm), 'relate url:', chalk.cyan(relp));
+                    let reg = new RegExp(`(url\\((\\.\\.\\/)+${fm})|(url\\(\\/${fm})`, 'gi');
+                    ps.push(() => replace(reg, `url(${relp}`));
+                    let reg2 = new RegExp(`(url\\(\\\\\'(\\.\\.\\/)+${fm})|(url\\(\\\\\'\\/${fm})`, 'gi');
+                    ps.push(() => replace(reg2, `url(\\'${relp}`));
+                });
+                this.restps = ps;
+            } else {
+                this.restps = [];
+            }
+        }
+        return this.restps;
+    }
+
     pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[] {
         let pipes = super.pipes(ctx, dist, gulp) || [];
-        let option = <IBundlesConfig>ctx.option;
-        if (_.isUndefined(option.resetAsserts)) {
-            option.resetAsserts = 'assets';
-        }
-        if (option.resetAsserts) {
-            let folders: string[];
-            let dist = ctx.getDist(this.getInfo());
-            if (_.isString(option.resetAsserts)) {
-                let pth = path.join(dist, option.resetAsserts);
-                if (existsSync(pth)) {
-                    folders = ctx.getFolders(pth);
-                    folders.push(option.resetAsserts);
-                } else {
-                    console.log(chalk.yellow('rest css asserts folders:', pth, 'not exists.'))
-                }
-            } else {
-                folders = option.resetAsserts;
-            }
-
-            folders = folders || [];
-
-            let ps = [];
-            _.each(folders, (f, fm) => {
-                let relp = ctx.toUrl(dist, path.join(dist, f));
-                let basename = path.basename(f);
-                let reg = new RegExp(`(url\\((\\.\\.\\/)+${basename})|(url\\(\\/${basename})|(url\\(\\'(\\.\\.\\/)+${basename})|(url\\(\\'\\/${basename})`, 'gi');
-                ps.push(() => replace(reg, `url(${relp}/`));
-            });
-
-            if (ps.length > 0) {
-                pipes = pipes.concat(ps);
-            }
+        let ps = this.getAssertResetPipe(ctx);
+        if (ps && ps.length > 0) {
+            pipes = pipes.concat(ps);
         }
         return pipes;
     }
