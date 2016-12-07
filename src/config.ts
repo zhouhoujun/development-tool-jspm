@@ -147,6 +147,14 @@ export interface IBundlesConfig extends IAsserts {
     systemConfigTempl?: TaskString;
 
     /**
+     * reset asserts css url src to relative to context dist. default 'assets'.
+     * 
+     * @type {Src}
+     * @memberOf IBundlesConfig
+     */
+    resetAsserts?: Src;
+
+    /**
      * bundle folder.
      * 
      * @type {string}

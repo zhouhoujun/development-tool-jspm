@@ -6,6 +6,8 @@ import { IBundlesConfig, IBundleGroup, IBuidlerConfig, IBundleMap, IBundleTransf
 
 import { readFileSync, readFile, existsSync, lstatSync, writeFileSync, readdirSync } from 'fs';
 import * as chalk from 'chalk';
+
+const replace = require('gulp-replace');
 // const globby = require('globby');
 const jspm = require('jspm');
 const source = require('vinyl-source-stream');
@@ -195,7 +197,6 @@ export class JspmBundle extends PipeTask {
     }
 
     private initOption(ctx: ITaskContext) {
-        let self = this;
         let option = <IBundlesConfig>_.extend(<IBundlesConfig>{
             baseURL: '',
             bundleBaseDir: '.',
@@ -212,18 +213,12 @@ export class JspmBundle extends PipeTask {
                 let paths: any = {};
                 let bundleDest = ctx.getDist();
                 let rootpath = <string>option.bundleBaseDir;
-                let dir = readdirSync(rootpath);
-                _.each(dir, (d: string) => {
-
-                    let sf = path.join(rootpath, d);
-                    if (sf === bundleDest) {
-                        return;
-                    }
-                    let f = lstatSync(sf);
-                    if (f.isDirectory()) {
+                ctx.getFolders(rootpath, (f, d) => {
+                    if (f !== bundleDest) {
                         let p = d + '/*';
                         paths[p] = ctx.toUrl(ctx.env.root, path.join(rootpath, p));
                     }
+                    return '';
                 });
                 // let jpk = <string>option.jspmPackages;
                 // let jp = path.basename(jpk) + '/*';
@@ -332,6 +327,44 @@ export class JspmBundle extends PipeTask {
     setup(ctx: ITaskContext, gulp: Gulp) {
         ctx.option = this.initOption(ctx);
         return super.setup(ctx, gulp);
+    }
+
+    pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[] {
+        let pipes = super.pipes(ctx, dist, gulp) || [];
+        let option = <IBundlesConfig>ctx.option;
+        if (_.isUndefined(option.resetAsserts)) {
+            option.resetAsserts = 'assets';
+        }
+        if (option.resetAsserts) {
+            let folders: string[];
+            let dist = ctx.getDist(this.getInfo());
+            if (_.isString(option.resetAsserts)) {
+                let pth = path.join(dist, option.resetAsserts);
+                if (existsSync(pth)) {
+                    folders = ctx.getFolders(pth);
+                    folders.push(option.resetAsserts);
+                } else {
+                    console.log(chalk.yellow('rest css asserts folders:', pth, 'not exists.'))
+                }
+            } else {
+                folders = option.resetAsserts;
+            }
+
+            folders = folders || [];
+
+            let ps = [];
+            _.each(folders, (f, fm) => {
+                let relp = ctx.toUrl(dist, path.join(dist, f));
+                let basename = path.basename(f);
+                let reg = new RegExp(`(url\\((\\.\\.\\/)+${basename})|(url\\(\\/${basename})|(url\\(\\'(\\.\\.\\/)+${basename})|(url\\(\\'\\/${basename})`, 'gi');
+                ps.push(() => replace(reg, `url(${relp}/`));
+            });
+
+            if (ps.length > 0) {
+                pipes = pipes.concat(ps);
+            }
+        }
+        return pipes;
     }
 
     protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]) {
