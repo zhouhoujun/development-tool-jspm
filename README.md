@@ -79,42 +79,52 @@ Development.create(gulp, __dirname, [
         src: 'src',
         dist: 'dist/development',
         releaseDist: 'dist/production',
-        // testSrc: ['test/**/*.spec.ts', 'src/**/*.spec.ts'],
         cleanSrc: (ctx) => {
             if (ctx.env.release || ctx.env.deploy) {
-                return 'dist/production';
+                if (ctx.env.gb) {
+                    return ['dist/production/!(*.js)'];
+                } else {
+                    return 'dist/production';
+                }
             } else {
                 return 'dist/development';
             }
         },
-        serverBaseDir: ctx => [ctx.toRootPath('dist'), ctx.getDist()],
-        serverFiles: ['jspm_packages/**/*'],
+        karma: {
+            jspm: {
+                resource: 'assets'
+            }
+        },
         loader: 'development-tool-web',
         assertsOrder: total => 1 / total,
-        // assertsRunWay: RunWay.sequence,
-        // name: 'web',
         asserts: {
             css: '', less: '',
             jpeg: Operation.default, jpg: Operation.default, png: Operation.default, svg: Operation.default,
             ttf: Operation.default, woff: Operation.default, eot: Operation.default, xslx: Operation.default,
             pdf: Operation.default,
-            html: ['src/*.html', 'src/*.cshtml'],
-            json: Operation.default | Operation.autoWatch,
+            html: 'src/*.html',
+            json:['src/**/*.json', '!src/data/**/*.json', '!src**/jsconfig.json', '!src/config*.json'],
+            config: {
+                src(ctx) {
+                    if (ctx.env.config) {
+                        return `src/config-${ctx.env.config}.json`;
+                    } else {
+                        return 'src/config.json';
+                    }
+                },
+                loader: []
+            },
             template: {
                 src: 'src/**/*.tpl.html',
                 loader: 'development-assert-templ'
             },
             ts: {
                 src: ['src/**/*.ts', 'test/**/*.ts'],
-                // babelOption: {
-                //     presets: ['react', 'es2015', 'stage-0'],
-                //     plugins: ['add-module-exports']
-                // },
+                uglify: false,
                 loader: {
                     module: 'development-assert-ts',
                     pipes: <Pipe[]>[
-                        { name: 'tscompile', toTransform: () => tslint(), order: total => 2 / total },
-                        { name: 'tscompile', toTransform: () => ngAnnotate(), order: total => 3 / total },
+                        { name: 'tscompile', toTransform: () => ngAnnotate(), order: total => 1 / total },
                     ]
                 }
             },
@@ -125,15 +135,18 @@ Development.create(gulp, __dirname, [
                 watch: true,
                 loader: [
                     {
-                        pipes: <IPipe[]>[
-                            () => replace(/dist\/jspm_packages/g, 'dist/jspm_packages')
+                        pipes: <Pipe[]>[
+                            // {
+                            //     oper: Operation.build,
+                            //     toTransform: () => replace(/dist\/jspm_packages/g, 'dist/jspm_packages')
+                            // }
                         ]
                     }
                 ]
             },
             js: ['src/**/*.js', '!src/jspm-config/**/*.js']
         },
-        subTaskOrder: total => (total - 1) / total,
+        subTaskOrder: total => 3 / total,
         tasks: [
             <IBundlesConfig>{
                 index: ['src/index.html', 'src/Index.cshtml'],
@@ -145,14 +158,13 @@ Development.create(gulp, __dirname, [
                 loader: 'development-tool-jspm',
                 bundles: (ctx) => {
                     let routes = [
-                        'app/amodule/routes.json',
-                        'app/bmodule/routes.json',
-                        'app/cmodule/routes.json',
-                        'app/routes.json'
+                        'app/subapp1/routes.json',
+                        'app/subapp2/routes.json',
+                        'app/subapp3.json'
                     ];
-                    let dist = (<IContext>ctx).parent.getDist();
+                    let dist = ctx.parent.getDist();
                     return ctx.fileFilter(path.join(dist, 'common/**/*.js'), null, n => {
-                        return path.relative(dist, n).replace(/\\/g, '/').replace(/^\//g, '');
+                        return ctx.toUrl(dist, n); // path.relative(dist, n).replace(/\\/g, '/').replace(/^\//g, '');
                     }).then(cits => {
                         let bundle: IMap<IBundleGroup> = {
                             commons: {
@@ -183,8 +195,6 @@ Development.create(gulp, __dirname, [
                                 }
                             }
                         });
-
-                        console.log(bundle);
                         return bundle;
                     });
                 },
@@ -210,6 +220,13 @@ Development.create(gulp, __dirname, [
                                 return libs.indexOf(d) < 0 && cores.indexOf(d) < 0;
                             }),
                             exclude: ['libs', 'core']
+                        },
+                        components: {
+                            combine: true,
+                            items: _.filter(deps, function (d) {
+                                return libs.indexOf(d) < 0 && cores.indexOf(d) < 0;
+                            }),
+                            exclude: ['libs', 'core', 'tools']
                         }
                     };
                 },
@@ -221,10 +238,8 @@ Development.create(gulp, __dirname, [
             {
                 loader: <IDynamicTaskOption>{
                     name: 'clean-production',
-                    oper: Operation.release | Operation.clean,
-                    task: (ctx) => {
-                        return del(ctx.toRootSrc(['dist/production/app', ...]);
-                    }
+                    oper: Operation.release,
+                    task: (ctx) => del(ctx.toDistSrc(['app', 'common', 'data']))
                 }
             }
         ]
