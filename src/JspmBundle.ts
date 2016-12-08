@@ -408,7 +408,7 @@ export class JspmBundle extends PipeTask {
         if (groups.length < 1) {
             groups = _.keys(this.bundleConfig);
         } else {
-            groups = _.filter(groups, f => f && groups[f]);
+            groups = _.filter(groups, f => f && this.bundleConfig[f]);
         }
         console.log('cmmand group bundle:', chalk.cyan(<any>groups));
         return groups;
