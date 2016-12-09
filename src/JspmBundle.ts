@@ -559,13 +559,16 @@ export class JspmBundle extends PipeTask {
         let baseURL = ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
         console.log('system config baseURL: ', chalk.cyan(baseURL));
 
+        let bust = _.isFunction(option.bust) ? option.bust(ctx) : option.bust;
+        console.log('system bust: ', chalk.cyan(bust));
+
         let output = `
 System.config({
     baseURL: '${baseURL}',
     defaultJSExtensions: true
 });
 System.bundled = true;
-System.bust = '${option.bust}';
+System.bust = '${bust}';
 if(window != undefined) window.prod = true;
 ${this.manifestSplit}
 `;
@@ -576,7 +579,7 @@ ${this.manifestSplit}
             template = ctx.toStr(option.systemConfigTempl);
 
             if (!template) {
-                template = (option.bust) ? `
+                template = (bust) ? `
 (function(module) {
     var bust = {};
     var systemLocate = System.locate;
