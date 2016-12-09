@@ -67,14 +67,7 @@ export class JspmBundle extends PipeTask {
     initBundles(ctx: ITaskContext): Promise<IMap<IBundleGroup>> {
         let opt = <IBundlesConfig>ctx.option;
         let pr = Promise.resolve<IMap<IBundleGroup>>(null)
-            .then(() => {
-                if (_.isFunction(opt.bundles)) {
-                    // opt['_bundlesFunc'] = opt.bundles;
-                    return opt.bundles(ctx);
-                } else {
-                    return opt.bundles;
-                }
-            });
+            .then(() => ctx.to<IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>>(opt.bundles));
 
         if (opt.bundleDeps) {
             pr = pr.then(bundles => {
@@ -289,7 +282,7 @@ export class JspmBundle extends PipeTask {
         let option = <IBundlesConfig>ctx.option;
         if (!option.builder.config) {
             option.builder.config = _.extend(option.builder.config || {}, {
-                paths: _.isFunction(option.bundlePaths) ? option.bundlePaths(<ITaskContext>ctx) : (option.bundlePaths || {}),
+                paths: ctx.to<IMap<string>>(option.bundlePaths) || {},
                 rootURL: <string>option.bundleBaseDir
             });
         }
@@ -559,7 +552,7 @@ export class JspmBundle extends PipeTask {
         let baseURL = ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
         console.log('system config baseURL: ', chalk.cyan(baseURL));
 
-        let bust = _.isFunction(option.bust) ? option.bust(ctx) : option.bust;
+        let bust = ctx.toStr(option.bust);
         console.log('system bust: ', chalk.cyan(bust));
 
         let output = `
