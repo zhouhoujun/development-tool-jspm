@@ -4,7 +4,7 @@ import { Gulp } from 'gulp';
 import * as path from 'path';
 import { IBundlesConfig, IBundleGroup, IBuidlerConfig, IBundleMap, IBundleTransform } from './config';
 
-import { readFileSync, readFile, existsSync, lstatSync, writeFileSync, readdirSync } from 'fs';
+import { readFileSync, readFile, existsSync, writeFileSync, readdirSync } from 'fs';
 import * as chalk from 'chalk';
 
 const replace = require('gulp-replace');
@@ -176,7 +176,6 @@ export class JspmBundle extends PipeTask {
     }
 
     private getRelativeSrc(ctx: ITaskContext, src: Src, toModule = false): string[] {
-        // console.log(option.baseURL);
         let baseURL = <string>(<IBundlesConfig>ctx.option).bundleBaseDir;
         if (_.isArray(src)) {
             return _.map(src, s => {
@@ -354,8 +353,10 @@ export class JspmBundle extends PipeTask {
 
                 let ps = [];
                 let dist = ctx.getDist(this.getInfo());
+                let baseURL = <string>option.baseURL; // ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
+                let root = ctx.getRootPath();
                 _.each(folders, f => {
-                    let relp = ctx.toUrl(dist, f);
+                    let relp = ctx.toUrl(root, path.join(baseURL, ctx.toUrl(dist, f)));
                     let fm = path.basename(f);
                     console.log('reset css url folder name:', chalk.cyan(fm), 'relate url:', chalk.cyan(relp));
                     let reg = new RegExp(`(url\\((\\.\\.\\/)+${fm})|(url\\(\\/${fm})`, 'gi');
@@ -555,10 +556,12 @@ export class JspmBundle extends PipeTask {
 
         console.log('Writing manifest...');
 
+        let baseURL = ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
+        console.log('system config baseURL: ', chalk.cyan(baseURL));
 
         let output = `
 System.config({
-    baseURL: '${ path.relative(<string>option.baseURL, ctx.env.root) || '.'}',
+    baseURL: '${baseURL}',
     defaultJSExtensions: true
 });
 System.bundled = true;
