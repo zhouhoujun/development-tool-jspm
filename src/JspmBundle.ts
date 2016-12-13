@@ -41,10 +41,17 @@ export class JspmBundle extends PipeTask {
         return Promise.resolve(jsbuilder)
             .then(builder => {
                 if (option.jspmConfig) {
-                    return builder.loadConfig(option.jspmConfig, undefined, true)
-                        .then(() => {
-                            return builder;
-                        });
+                    if (_.isArray(option.jspmConfig)) {
+                        return Promise.all(option.jspmConfig.map(cf => builder.loadConfig(cf, undefined, true)))
+                            .then(() => {
+                                return builder;
+                            });
+                    } else {
+                        return builder.loadConfig(option.jspmConfig, undefined, true)
+                            .then(() => {
+                                return builder;
+                            });
+                    }
                 } else {
                     return builder;
                 }
@@ -256,7 +263,7 @@ export class JspmBundle extends PipeTask {
         }
 
         if (option.jspmConfig) {
-            option.jspmConfig = ctx.toRootPath(ctx.toStr(option.jspmConfig));
+            option.jspmConfig = ctx.toRootSrc(ctx.toSrc(option.jspmConfig));
         }
         option.packageFile = ctx.toRootPath(ctx.toStr(option.packageFile));
         option.mainfile = ctx.toStr(option.mainfile);

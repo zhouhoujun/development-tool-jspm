@@ -1,4 +1,4 @@
-import { Src, Pipe, IMap, IAsserts, ITaskContext, OutputPipe, ITransform, TaskString } from 'development-core';
+import { Src, Pipe, IMap, IAsserts, ITaskContext, OutputPipe, ITransform, TaskSource, TaskString } from 'development-core';
 /**
  * jspm mate loader config
  *
@@ -53,10 +53,10 @@ export interface IBundlesConfig extends IAsserts {
     /**
      * jspm config file full path.
      *
-     * @type {string}
+     * @type {TaskSource}
      * @memberOf BundlesConfig
      */
-    jspmConfig?: TaskString;
+    jspmConfig?: TaskSource;
     /**
      * package.json file path.
      *
