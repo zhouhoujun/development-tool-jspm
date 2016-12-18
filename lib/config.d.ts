@@ -44,6 +44,12 @@ export interface IBundlesConfig extends IAsserts {
      */
     bundleBaseDir?: TaskString;
     /**
+     * dependencies libs to bundle. default use jspm config in package.json.
+     *
+     * @memberOf IBundlesConfig
+     */
+    dependencies?: string[] | ((ctx: ITaskContext) => string[]);
+    /**
      * bundlePaths
      *
      *

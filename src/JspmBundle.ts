@@ -83,11 +83,12 @@ export class JspmBundle extends PipeTask {
                     console.log(chalk.red('can not found package.json file.'));
                     process.exit(0);
                 }
-                if (!pkg.jspm) {
-                    console.log(chalk.red('jspm not init in package.json file.'));
+
+                let deps = opt.dependencies ? ctx.to<string[]>(opt.dependencies) : _.keys(pkg.jspm.dependencies);
+                if (!deps || deps.length < 0) {
+                    console.log(chalk.red('not set bundle dependencies libs, or not setting jspm config.'));
                     process.exit(0);
                 }
-                let deps = _.keys(pkg.jspm.dependencies);
                 if (opt.depsExclude) {
                     let exclude = _.isFunction(opt.depsExclude) ? opt.depsExclude(ctx, deps) : opt.depsExclude;
                     deps = _.filter(deps, d => exclude.indexOf(d) < 0);
