@@ -1,6 +1,6 @@
 {
   "name": "development-tool-jspm",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "jspm bundle builder tools, group bundle.",
   "main": "./lib/index.js",
   "typings": "./lib/index",
