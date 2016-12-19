@@ -5,9 +5,13 @@ This repo is for distribution on `npm`. The source for this module is in the
 Please file issues and pull requests against that repo.
 This package use to bundle jspm project by custom group.
 
+# note
+
+* `if you use jspm package manager, do not setting jspm baseURL!!!`
+
 ## Install
 
-You can install this package either with `npm` or with `jspm`.
+You can install this package either with `npm`
 
 ### npm
 
