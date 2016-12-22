@@ -8,10 +8,10 @@ export declare class JspmBundle extends PipeTask {
     private bundleMaps;
     constructor(info?: ITaskInfo);
     source(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): TransformSource | Promise<TransformSource>;
-    execute(context: ITaskContext, gulp: Gulp): Promise<void>;
+    execute(context: ITaskContext, gulp: Gulp): Promise<any>;
     setup(ctx: ITaskContext, gulp: Gulp): string | void | string[];
     pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[];
-    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]): Promise<void>;
+    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]): Promise<void | {}[]>;
     protected getOption(config: ITaskContext): IAssertDist;
     protected loadBuilder(ctx: ITaskContext): Promise<any>;
     private translate(trans);
