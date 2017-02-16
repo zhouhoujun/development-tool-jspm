@@ -11,7 +11,7 @@ export declare class JspmBundle extends PipeTask {
     execute(context: ITaskContext, gulp: Gulp): Promise<any>;
     setup(ctx: ITaskContext, gulp: Gulp): string | void | string[];
     pipes(ctx: ITaskContext, dist: IAssertDist, gulp?: Gulp): Pipe[];
-    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]): Promise<void | {}[]>;
+    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]): Promise<void | ITransform[]>;
     protected getOption(config: ITaskContext): IAssertDist;
     protected loadBuilder(ctx: ITaskContext): Promise<any>;
     private translate(trans);
