@@ -641,20 +641,39 @@ ${this.manifestSplit}
             }
 
 
-            let maps = {
-                css: 'github:systemjs/plugin-css@0.1.20.js',
-                json: 'github:systemjs/plugin-json@0.1.2.js'
+            // let maps = {
+            //     css: 'github:systemjs/plugin-css@0.1.20.js',
+            //     json: 'github:systemjs/plugin-json@0.1.2.js'
+            // };
+
+           let maps = option.bundleMaps || {
+                css: '',
+                json: '',
+                text: ''
             };
 
+            let cssSrc, jsonSrc, textSrc;
             _.each(_.keys(manifest.bundles), n => {
-                if (/css.min.js$/.test(n)) {
-                    maps.css = <string>_.first(manifest.bundles[n]);
+                if (!maps.css) {
+                    cssSrc = <string>_.find(manifest.bundles[n], (it: string) => /(css(.min){0,1}.js)|(plugin-css@\d+.\d+.\d+.js)$/.test(it));
+                    if (cssSrc) {
+                        maps.css = cssSrc;
+                    }
                 }
-                if (/json.min.js$/.test(n)) {
-                    maps.css = <string>_.first(manifest.bundles[n]);
+
+                if (!maps.json) {
+                    jsonSrc = _.find(manifest.bundles[n], (it: string) => /(json(.min){0,1}.js)|(plugin-json@\d+.\d+.\d+.js)$/.test(it));
+                    if (jsonSrc) {
+                        maps.json = jsonSrc;
+                    }
+                }
+                if (!maps.text) {
+                    textSrc = <string>_.find(manifest.bundles[n], (it: string) => /(text(.min){0,1}.js)|(plugin-text@\d+.\d+.\d+.js)$/.test(it));
+                    if (textSrc) {
+                        maps.text = textSrc;
+                    }
                 }
             });
-
             let jspmMetas = option.jspmMates;
             output += _.template(template)({
                 maps: JSON.stringify(maps, null, '    '),

@@ -172,6 +172,10 @@ export interface IBundlesConfig extends IAsserts {
      */
     bundleDeps?: boolean | IMap<IBundleGroup> | ((ctx: ITaskContext, dependencies: string[]) => IMap<IBundleGroup> | Promise<IMap<IBundleGroup>>);
     /**
+     * custome bundle maps.
+     */
+    bundleMaps?: IMap<string>;
+    /**
      * bundle jspm dependencies exclude items.
      *
      *
