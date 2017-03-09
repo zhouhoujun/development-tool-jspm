@@ -3,7 +3,7 @@ import { IMap, task, RunWay, IAssertDist, ITaskContext, Src, Pipe, OutputPipe, I
 import { Gulp } from 'gulp';
 import * as path from 'path';
 import { IBundlesConfig, IBundleGroup, IBuidlerConfig, IBundleMap, IBundleTransform } from './config';
-
+import * as url from 'url';
 import { readFileSync, readFile, existsSync, writeFileSync, readdirSync } from 'fs';
 import * as chalk from 'chalk';
 
@@ -236,14 +236,14 @@ export class JspmBundle extends PipeTask {
     }
 
     private getRelativeSrc(ctx: ITaskContext, src: Src, toModule = false): string[] {
-        let baseURL = <string>(<IBundlesConfig>ctx.option).bundleBaseDir;
+        let bunldeBase = <string>(<IBundlesConfig>ctx.option).bundleBaseDir;
         if (_.isArray(src)) {
             return _.map(src, s => {
-                let filename = ctx.toUrl(baseURL, s);
+                let filename = ctx.toUrl(bunldeBase, s);
                 return toModule ? this.toModulePath(filename) : filename;
             });
         } else {
-            let fn = ctx.toUrl(baseURL, src);
+            let fn = ctx.toUrl(bunldeBase, src);
             return [(toModule ? this.toModulePath(fn) : fn)];
         }
     }
@@ -256,7 +256,7 @@ export class JspmBundle extends PipeTask {
     }
 
     private initOption(ctx: ITaskContext) {
-        let option = <IBundlesConfig>_.extend(<IBundlesConfig>{
+        let option = <IBundlesConfig>_.extend({}, <IBundlesConfig>{
             baseURL: '',
             bundleBaseDir: '.',
             mainfile: 'bundle.js',
@@ -312,7 +312,8 @@ export class JspmBundle extends PipeTask {
 
         ctx.option = option;
 
-        option.baseURL = ctx.toRootPath(ctx.toStr(option.baseURL));
+        option.baseURL = ctx.toStr(option.baseURL);
+        console.log('baseURL set as:', option.baseURL);
         if (!option.bundleBaseDir && ctx.parent) {
             option.bundleBaseDir = ctx.parent.getDist()
         } else if (option.bundleBaseDir) {
@@ -385,14 +386,14 @@ export class JspmBundle extends PipeTask {
                 let baseURL = <string>option.baseURL; // ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
                 let root = ctx.getRootPath();
                 _.each(folders, f => {
-                    let relp = ctx.toUrl(root, path.join(baseURL, ctx.toUrl(dist, f)));
+                    let relp = url.resolve(baseURL,  ctx.toUrl(root, ctx.toUrl(dist, f)));
                     let fm = path.basename(f);
                     console.log('reset css url folder name:', chalk.cyan(fm), 'relate url:', chalk.cyan(relp));
-                    let reg = new RegExp(`(url\\((..\\/)+${fm})|(url\\(\\/${fm})`, 'gi');
+                    let reg = new RegExp(`(url\\((\\.\\.\\/)+${fm})|(url\\(\\/${fm})`, 'gi');
                     ps.push(() => replace(reg, `url(${relp}`));
-                    let reg2 = new RegExp(`(url\\(\\'(..\\/)+${fm})|(url\\(\\'\\/${fm})`, 'gi');
+                    let reg2 = new RegExp(`(url\\(\\\\'(\\.\\.\\/)+${fm})|(url\\(\\\\'\\/${fm})`, 'gi');
                     ps.push(() => replace(reg2, `url(\\'${relp}`));
-                    let reg3 = new RegExp(`(url\\(("..\\/)+${fm})|(url\\("\\/${fm})`, 'gi');
+                    let reg3 = new RegExp(`(url\\(("\\.\\.\\/)+${fm})|(url\\("\\/${fm})`, 'gi');
                     ps.push(() => replace(reg3, `url("${relp}`));
                 });
                 this.restps = ps;
@@ -561,7 +562,7 @@ export class JspmBundle extends PipeTask {
 
         console.log('Writing manifest...');
 
-        let baseURL = ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
+        let baseURL = ctx.toUrl(<string>option.baseURL) || '.';
         console.log('system config baseURL: ', chalk.cyan(baseURL));
 
         let bust = ctx.toStr(option.bust);
