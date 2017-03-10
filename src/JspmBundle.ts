@@ -312,7 +312,7 @@ export class JspmBundle extends PipeTask {
 
         ctx.option = option;
 
-        option.baseURL = ctx.toStr(option.baseURL);
+        option.baseURL = ctx.toStr(option.baseURL) || './';
         console.log('baseURL set as:', option.baseURL);
         if (!option.bundleBaseDir && ctx.parent) {
             option.bundleBaseDir = ctx.parent.getDist()

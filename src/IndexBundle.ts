@@ -39,7 +39,7 @@ export class IndexBundle extends PipeTask {
         let option = <IBundlesConfig>ctx.option;
         let pkg = ctx.getPackage()
         let pipes = <Pipe[]>[
-            (ctx: ITaskContext) => htmlreplace({ 'js': url.resolve(ctx.toStr(option.baseURL), ctx.toStr(option.mainfile)) + '?bust=' + (ctx.toStr(option.bust) || pkg.version) })
+            (ctx: ITaskContext) => htmlreplace({ 'js': url.resolve(ctx.toStr(option.baseURL) || './', ctx.toStr(option.mainfile)) + '?bust=' + (ctx.toStr(option.bust) || pkg.version) })
         ];
 
         if (option.indexPipes && option.indexPipes.length > 0) {
