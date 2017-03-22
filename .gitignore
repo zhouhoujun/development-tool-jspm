@@ -5,6 +5,6 @@ bower_components
 jspm_packages
 typings
 test/app
-build
+build/*
 
 
