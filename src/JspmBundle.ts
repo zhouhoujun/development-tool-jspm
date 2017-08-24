@@ -48,7 +48,7 @@ export class JspmBundle extends PipeTask {
                             });
                     }))
                 }).then(groups => {
-                    return _.flatten(groups);
+                    return _.flatten<any>(groups);
                 });
         } else {
             return this.loadBuilder(ctx)
@@ -112,7 +112,7 @@ export class JspmBundle extends PipeTask {
         return pipes;
     }
 
-    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]) {
+    protected working(source: ITransform, ctx: ITaskContext, option: IAssertDist, gulp: Gulp, pipes?: Pipe[], output?: OutputPipe[]): Promise<any> {
         let bundle = <IBundleMap>source['bundle'];
         return super.working(source, ctx, option, gulp, pipes, output)
             .then(() => {
@@ -386,7 +386,7 @@ export class JspmBundle extends PipeTask {
                 let baseURL = <string>option.baseURL; // ctx.toUrl(ctx.getRootPath(), <string>option.baseURL) || '.';
                 let root = ctx.getRootPath();
                 _.each(folders, f => {
-                    let relp = url.resolve(baseURL,  ctx.toUrl(root, ctx.toUrl(dist, f)));
+                    let relp = url.resolve(baseURL, ctx.toUrl(root, ctx.toUrl(dist, f)));
                     let fm = path.basename(f);
                     console.log('reset css url folder name:', chalk.cyan(fm), 'relate url:', chalk.cyan(relp));
                     let reg = new RegExp(`(url\\((\\.\\.\\/)+${fm})|(url\\(\\/${fm})`, 'gi');
@@ -647,7 +647,7 @@ ${this.manifestSplit}
             //     json: 'github:systemjs/plugin-json@0.1.2.js'
             // };
 
-           let maps = option.bundleMaps || {
+            let maps: any = option.bundleMaps || {
                 css: '',
                 json: '',
                 text: ''
